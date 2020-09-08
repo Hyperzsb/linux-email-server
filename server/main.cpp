@@ -27,7 +27,7 @@ int main() {
     server_addr.sin_port = htons(6000);
 
     // 在初始化之前，设置 socket 选项，使得 socket 不必等待地址 TIME_WAIT 状态释放
-    // TODO: 目前会产生 CLOSE_WAIT 的状态，不知如何解决
+    // TODO: 目前会产生 CLOSE_WAIT 的状态，TBD
     int on = 1;
     if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) == -1)
         print_error("Error while setting socket option");
@@ -45,7 +45,7 @@ int main() {
     else
         printf("Successfully started listening!\n");
 
-    // TODO:
+    // TODO: 目前无法控制关闭服务器，TBD
     while (true) {
         struct sockaddr_in client_addr{};
         // client_len 必须初始化，否则 accept() 会失败
