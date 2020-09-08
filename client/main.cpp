@@ -1,3 +1,4 @@
+#include <system_error>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -5,10 +6,15 @@
 #include <cstdio>
 #include <cstring>
 
+void print_error(const char *message) {
+    perror(message);
+    exit(EXIT_FAILURE);
+}
+
 int main() {
     int client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == -1)
-        printf("Error while creating socket!\n");
+        print_error("Error while creating socket");
     else
         printf("Successfully created socket!\n");
 
@@ -19,7 +25,7 @@ int main() {
     server_addr.sin_port = htons(6000);
 
     if (connect(client_socket, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1)
-        printf("Error while connect to server!\n");
+        print_error("Error while connect to server");
     else
         printf("Successfully connected to server!\n");
 
