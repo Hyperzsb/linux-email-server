@@ -1,6 +1,6 @@
 # Linux Email Application Server
 
-**An email application running on Linux for LAN environment. **
+**An email application running on Linux for LAN environment.**
 
 **This repository only contains server-side program of the whole Linux Email Application.**
 
@@ -12,5 +12,6 @@ BRANCH:
 
 - master: Master branch for the project.
 - echo: A demo for C Socket Programming.
+- single-p2p: A P2P communication program.
 
 ***Continually updating...***
