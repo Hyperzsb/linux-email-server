@@ -17,3 +17,6 @@ add_executable(demo main.cpp)
 
 target_link_libraries(demo mysqlclient)
 target_link_libraries(demo lesdao)
+
+find_package(OpenSSL REQUIRED)
+target_link_libraries(demo OpenSSL::SSL)

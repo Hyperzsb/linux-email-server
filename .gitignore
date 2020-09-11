@@ -175,6 +175,5 @@ dkms.conf
 
 # Custom
 .idea/
-!*/lib/
-!*/lib/
+!liblesdao.a
 !include/
