@@ -26,6 +26,24 @@ enum SignInStatus {
     SIGN_IN_INVALID_PASSWD = 3
 };
 
+struct SignInFeedback {
+    SignInStatus status;
+    char token[16];
+};
+
+enum RecoverStatus {
+    RECOVER_SUCCESS = 0,
+    RECOVER_ERROR = 1,
+    RECOVER_INVALID_ANSWER = 2
+};
+
+enum DeleteStatus {
+    DELETE_SUCCESS = 0,
+    DELETE_ERROR = 1
+};
+
+
+
 class MySQL_DAO {
 
 private:
@@ -35,7 +53,6 @@ private:
     string *password;
     string *database;
     MYSQL *connection;
-    bool connection_status;
 
     static void StdLog(LogLevel level, const char *msg);
 
@@ -48,11 +65,13 @@ public:
 
     bool Connect();
 
-    SignUpStatus SignUp(const char *host, const char *domain, const char *passwd,
+    SignUpStatus SignUp(const char *ip, const char *host, const char *domain, const char *passwd,
                         const char *nickname, const char *description,
                         const char *recovery_question, const char *recovery_answer);
 
-    SignInStatus SignIn(const char *account_name, const char *account_passwd);
+    SignInFeedback SignIn(const char *ip, const char *account_name, const char *account_passwd);
+
+
 };
 
 #endif //LIBLEADAO_LEADAO_H

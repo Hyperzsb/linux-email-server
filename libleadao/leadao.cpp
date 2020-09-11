@@ -36,7 +36,6 @@ MySQL_DAO::MySQL_DAO() {
     this->password = nullptr;
     this->database = nullptr;
     this->connection = nullptr;
-    this->connection_status = false;
 }
 
 MySQL_DAO::MySQL_DAO(const char *host, short port, const char *user, const char *passwd, const char *db) {
@@ -51,7 +50,6 @@ MySQL_DAO::MySQL_DAO(const char *host, short port, const char *user, const char 
         StdLog(ERROR, "Init connection failed");
     else
         StdLog(INFO, "Init connection succeeded");
-    this->connection_status = false;
 }
 
 MySQL_DAO::~MySQL_DAO() {
@@ -80,7 +78,6 @@ bool MySQL_DAO::Connect() {
             log_str.append(mysql_character_set_name(connection));
             StdLog(INFO, log_str.c_str());
         }
-        this->connection_status = true;
         return true;
     } else {
         StdLog(ERROR, "Real connection establishment failed");
@@ -88,7 +85,7 @@ bool MySQL_DAO::Connect() {
     }
 }
 
-SignUpStatus MySQL_DAO::SignUp(const char *host, const char *domain, const char *passwd,
+SignUpStatus MySQL_DAO::SignUp(const char *ip, const char *host, const char *domain, const char *passwd,
                                const char *nickname, const char *description,
                                const char *recovery_question, const char *recovery_answer) {
     // Log
@@ -154,7 +151,7 @@ SignUpStatus MySQL_DAO::SignUp(const char *host, const char *domain, const char 
     }
 }
 
-SignInStatus MySQL_DAO::SignIn(const char *account_name, const char *account_passwd) {
+SignInFeedback MySQL_DAO::SignIn(const char *ip, const char *account_name, const char *account_passwd) {
     // Log
     char log_str[200] = {0};
     sprintf(log_str, "Account '%s' is trying to login", account_name);
@@ -184,7 +181,9 @@ SignInStatus MySQL_DAO::SignIn(const char *account_name, const char *account_pas
                 memset(log_str, 0, 200);
                 sprintf(log_str, "No such account '%s'", account_name);
                 StdLog(WARNING, log_str);
-                return SIGN_IN_INVALID_ACCOUNT;
+                SignInFeedback feedback{};
+                feedback.status = SIGN_IN_INVALID_ACCOUNT;
+                return feedback;
             }
             MYSQL_ROW result_row;
             result_row = mysql_fetch_row(result);
@@ -192,25 +191,46 @@ SignInStatus MySQL_DAO::SignIn(const char *account_name, const char *account_pas
             mysql_free_result(result);
             if (strcmp(account_passwd, valid_passwd.c_str()) == 0) {
                 memset(log_str, 0, 200);
-                sprintf(log_str, "Account '%s' matches its given password, sign in successfully",
+                sprintf(log_str, "Account '%s' matches its given password",
                         account_name);
                 StdLog(INFO, log_str);
-                return SIGN_IN_SUCCESS;
+                // Generate token
+                SHA256_CTX sha256_ctx;
+                SHA256_Init(&sha256_ctx);
+                SHA256_Update(&sha256_ctx, ip, strlen(ip));
+                SHA256_Update(&sha256_ctx, account_name, strlen(account_name));
+                char time_str[20] = {0};
+                time_t time_type;
+                time(&time_type);
+                sprintf(time_str, "%d", (int) time_type);
+                SHA256_Update(&sha256_ctx, time_str, strlen(time_str));
+                unsigned char raw_token[32] = {0};
+                SHA256_Final(raw_token, &sha256_ctx);
+                SignInFeedback feedback{};
+                feedback.status = SIGN_IN_SUCCESS;
+                for (int i = 0; i < 8; i++)
+                    sprintf(feedback.token + i * 2, "%02x", raw_token[i]);
+                return feedback;
             } else {
                 memset(log_str, 0, 200);
                 sprintf(log_str, "Account '%s' does not match its password, sign in unsuccessfully",
                         account_name);
                 StdLog(WARNING, log_str);
-                return SIGN_IN_INVALID_PASSWD;
+                SignInFeedback feedback{};
+                feedback.status = SIGN_IN_INVALID_PASSWD;
+                return feedback;
             }
         } else {
             StdLog(ERROR, mysql_error(connection));
             mysql_free_result(result);
-            return SIGN_IN_ERROR;
+            SignInFeedback feedback{};
+            feedback.status = SIGN_IN_ERROR;
+            return feedback;
         }
     } else {
         StdLog(ERROR, mysql_error(connection));
-        return SIGN_IN_ERROR;
+        SignInFeedback feedback{};
+        feedback.status = SIGN_IN_ERROR;
+        return feedback;
     }
 }
-
