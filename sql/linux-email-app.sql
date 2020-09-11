@@ -22,15 +22,15 @@ create table account_info
     domain            varchar(30)  not null,
     # Account password
     password          varchar(30)  not null,
+    # Account nickname
+    nickname          varchar(30)           default null,
+    # Account description
+    description       varchar(100)          default null,
     # Recovery function used to reset account password in case that user forgets his password
     # Recovery question
     recovery_question varchar(100) not null,
     # Recovery answer
     recovery_answer   varchar(100) not null,
-    # Account nickname
-    nickname          varchar(30)           default null,
-    # Account description
-    description       varchar(100)          default null,
     # Lock status, determine whether this account is available:
     #     0: NLOCKED
     #     1: LOCKED
@@ -48,8 +48,6 @@ create table account_activity
     account_id varchar(16) not null,
     # Client IP
     ip         varchar(15) not null,
-    # Client Port
-    port       int(5)      not null,
     # Activity type, currently include:
     #     0: Sign in
     #     1: Sign out
@@ -61,9 +59,32 @@ create table account_activity
     time       timestamp   not null,
     # Activity status code, currently include:
     #     0: SUCCESS
-    #    -1: UNEXPECTED_FAILURE
+    #    -1: ERROR
+    #     1: UNRELIABLE_SUCCESS
     status     int(3)      not null default 0,
     primary key (id),
+    foreign key (account_id) references account_info (id)
+) charset = utf8
+  collate = utf8_general_ci;
+# Create account token table, which contains token of every sign-in action created by every account
+drop table if exists account_token;
+create table account_token
+(
+    # Account sign in token
+    token       char(16)    not null,
+    # Account ID
+    account_id  varchar(16) not null,
+    # Client IP
+    ip          varchar(15) not null,
+    # Token create time
+    create_time timestamp   not null,
+    # Token expire time
+    expire_time timestamp   not null,
+    # Token status code, currently include:
+    #     0: OPEN
+    #    -1: CLOSED
+    status      int(3)      not null default 0,
+    primary key (token),
     foreign key (account_id) references account_info (id)
 ) charset = utf8
   collate = utf8_general_ci;
@@ -111,5 +132,16 @@ create table draft
     primary key (id),
     foreign key (sender_id) references account_info (id),
     foreign key (recipient_id) references account_info (id)
+) charset = utf8
+  collate = utf8_general_ci;
+# Create contact tables
+drop table if exists contact;
+create table contact
+(
+    owner_id   char(16) not null,
+    contact_id char(16) not null,
+    primary key (owner_id),
+    foreign key (owner_id) references account_info (id),
+    foreign key (contact_id) references account_info (id)
 ) charset = utf8
   collate = utf8_general_ci;
