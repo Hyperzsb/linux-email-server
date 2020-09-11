@@ -11,12 +11,12 @@ link_libraries(mysqlclient)
 
 include_directories(include)
 link_directories(lib)
-link_libraries(lesdao)
+link_libraries(leadao)
 
 add_executable(demo main.cpp)
 
 target_link_libraries(demo mysqlclient)
-target_link_libraries(demo lesdao)
+target_link_libraries(demo leadao)
 
 find_package(OpenSSL REQUIRED)
 target_link_libraries(demo OpenSSL::SSL)

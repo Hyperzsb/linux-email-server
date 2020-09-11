@@ -175,5 +175,4 @@ dkms.conf
 
 # Custom
 .idea/
-!liblesdao.a
-!include/
+!libleadao.a

@@ -1,5 +1,5 @@
-#ifndef DAO_LIB_LESDAO_H
-#define DAO_LIB_LESDAO_H
+#ifndef LIBLEADAO_LEADAO_H
+#define LIBLEADAO_LEADAO_H
 
 #include <mysql/mysql.h>
 #include <openssl/sha.h>
@@ -48,11 +48,11 @@ public:
 
     bool Connect();
 
-    SignUpStatus SignUp(const char *host, const char *domain, const char *account_passwd,
+    SignUpStatus SignUp(const char *host, const char *domain, const char *passwd,
                         const char *nickname, const char *description,
                         const char *recovery_question, const char *recovery_answer);
 
     SignInStatus SignIn(const char *account_name, const char *account_passwd);
 };
 
-#endif //DAO_LIB_LESDAO_H
+#endif //LIBLEADAO_LEADAO_H

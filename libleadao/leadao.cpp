@@ -1,4 +1,4 @@
-#include "lesdao.h"
+#include "leadao.h"
 
 void MySQL_DAO::StdLog(LogLevel level, const char *msg) {
     time_t time_type;
@@ -88,7 +88,7 @@ bool MySQL_DAO::Connect() {
     }
 }
 
-SignUpStatus MySQL_DAO::SignUp(const char *host, const char *domain, const char *account_passwd,
+SignUpStatus MySQL_DAO::SignUp(const char *host, const char *domain, const char *passwd,
                                const char *nickname, const char *description,
                                const char *recovery_question, const char *recovery_answer) {
     // Log
@@ -123,10 +123,10 @@ SignUpStatus MySQL_DAO::SignUp(const char *host, const char *domain, const char 
                 char add_account_query[700] = {0};
                 sprintf(add_account_query,
                         "insert into account_info "
-                        "(id, host, domain, password, recovery_question, recovery_answer, nickname, description, locked) "
+                        "(id, host, domain, password, nickname, description, recovery_question, recovery_answer, locked) "
                         "value ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d);",
-                        hash_id, host, domain, account_passwd, recovery_question, recovery_answer,
-                        nickname, description, 0);
+                        hash_id, host, domain, passwd, nickname, description,
+                        recovery_question, recovery_answer, 0);
                 if (mysql_query(connection, add_account_query) == 0) {
                     memset(log_str, 0, 200);
                     sprintf(log_str, "Add account '%s@%s' successfully", host, domain);
@@ -192,12 +192,14 @@ SignInStatus MySQL_DAO::SignIn(const char *account_name, const char *account_pas
             mysql_free_result(result);
             if (strcmp(account_passwd, valid_passwd.c_str()) == 0) {
                 memset(log_str, 0, 200);
-                sprintf(log_str, "Account '%s' matches its given password", account_name);
+                sprintf(log_str, "Account '%s' matches its given password, sign in successfully",
+                        account_name);
                 StdLog(INFO, log_str);
                 return SIGN_IN_SUCCESS;
             } else {
                 memset(log_str, 0, 200);
-                sprintf(log_str, "Account '%s' does not match its password", account_name);
+                sprintf(log_str, "Account '%s' does not match its password, sign in unsuccessfully",
+                        account_name);
                 StdLog(WARNING, log_str);
                 return SIGN_IN_INVALID_PASSWD;
             }

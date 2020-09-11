@@ -1,5 +1,5 @@
-#ifndef DAO_LIB_LESDAO_H
-#define DAO_LIB_LESDAO_H
+#ifndef LIBLEADAO_LEADAO_H
+#define LIBLEADAO_LEADAO_H
 
 #include <mysql/mysql.h>
 #include <openssl/sha.h>
@@ -55,4 +55,4 @@ public:
     SignInStatus SignIn(const char *account_name, const char *account_passwd);
 };
 
-#endif //DAO_LIB_LESDAO_H
+#endif //LIBLEADAO_LEADAO_H
