@@ -6,25 +6,9 @@
 #include <string>
 #include <ctime>
 #include <cstring>
+#include "type.h"
 
 using namespace std;
-
-enum LogLevel {
-    INFO = 0, WARNING = 1, ERROR = 2
-};
-
-enum SignUpStatus {
-    SIGN_UP_SUCCESS = 0,
-    SIGN_UP_ERROR = 1,
-    SIGN_UP_ACCOUNT_CONFLICT = 2
-};
-
-enum SignInStatus {
-    SIGN_IN_SUCCESS = 0,
-    SIGN_IN_ERROR = 1,
-    SIGN_IN_INVALID_ACCOUNT = 2,
-    SIGN_IN_INVALID_PASSWD = 3
-};
 
 class MySQL_DAO {
 
@@ -35,9 +19,14 @@ private:
     string *password;
     string *database;
     MYSQL *connection;
-    bool connection_status;
 
     static void StdLog(LogLevel level, const char *msg);
+
+    static char *GetAccountHost(const char *account);
+
+    static char *GetAccountDomain(const char *account);
+
+    SQLFeedback *GetAccountID(const char *account);
 
 public:
     MySQL_DAO();
@@ -48,11 +37,15 @@ public:
 
     bool Connect();
 
-    SignUpStatus SignUp(const char *host, const char *domain, const char *account_passwd,
+    SignUpStatus SignUp(const char *ip, const char *host, const char *domain, const char *passwd,
                         const char *nickname, const char *description,
                         const char *recovery_question, const char *recovery_answer);
 
-    SignInStatus SignIn(const char *account_name, const char *account_passwd);
+    SignInFeedback *SignIn(const char *ip, const char *account_name, const char *account_passwd);
+
+    Status SendEmail(const char *ip, const char *token, Email *email);
+
+    EmailFeedBack *FetchEmail(const char *ip, const char *token, const char *account,EmailType type);
 };
 
 #endif //LIBLEADAO_LEADAO_H
