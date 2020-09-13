@@ -29,13 +29,13 @@ void MySQL_DAO::StdLog(LogLevel level, const char *msg) {
     }
 }
 
-char *MySQL_DAO::GetAccountHost(const char *account) {
+char *MySQL_DAO::GetAccountHost(const char *account_name) {
     char *host_name = new char[31];
     memset(host_name, 0, 31);
-    int account_name_len = strlen(account), host_name_len = 0;
+    int account_name_len = strlen(account_name), host_name_len = 0;
     for (int i = 0; i < account_name_len; i++)
-        if (account[i] != '@') {
-            host_name[host_name_len] = account[i];
+        if (account_name[i] != '@') {
+            host_name[host_name_len] = account_name[i];
             host_name_len++;
         } else {
             break;
@@ -44,28 +44,28 @@ char *MySQL_DAO::GetAccountHost(const char *account) {
     return host_name;
 }
 
-char *MySQL_DAO::GetAccountDomain(const char *account) {
+char *MySQL_DAO::GetAccountDomain(const char *account_name) {
     char *domain_name = new char[31];
     memset(domain_name, 0, 31);
-    int account_name_len = strlen(account), host_name_len = 0, domain_name_len = 0;
+    int account_name_len = strlen(account_name), host_name_len = 0, domain_name_len = 0;
     for (int i = 0; i < account_name_len; i++)
-        if (account[i] != '@') {
+        if (account_name[i] != '@') {
             host_name_len++;
         } else {
             break;
         }
     for (int i = host_name_len + 1; i < account_name_len; i++) {
-        domain_name[domain_name_len] = account[i];
+        domain_name[domain_name_len] = account_name[i];
         domain_name_len++;
     }
     domain_name[domain_name_len] = '\0';
     return domain_name;
 }
 
-SQLFeedback *MySQL_DAO::GetAccountID(const char *account) {
+SQLFeedback *MySQL_DAO::GetAccountID(const char *account_name) {
     char *id, *host_name, *domain_name, query[200] = {0}, log_str[200] = {0};
     auto *feedback = new SQLFeedback;
-    host_name = GetAccountHost(account), domain_name = GetAccountDomain(account);
+    host_name = GetAccountHost(account_name), domain_name = GetAccountDomain(account_name);
     sprintf(query, "select id from account_info where host = '%s' and domain = '%s';",
             host_name, domain_name);
     delete[]host_name;
@@ -76,7 +76,7 @@ SQLFeedback *MySQL_DAO::GetAccountID(const char *account) {
             if (mysql_num_rows(result) == 0) {
                 mysql_free_result(result);
                 memset(log_str, 0, 200);
-                sprintf(log_str, "No such account '%s'", account);
+                sprintf(log_str, "No such account '%s'", account_name);
                 StdLog(WARNING, log_str);
                 feedback->status = EXPECTED_ERROR;
                 feedback->data = nullptr;
@@ -84,13 +84,52 @@ SQLFeedback *MySQL_DAO::GetAccountID(const char *account) {
             }
             MYSQL_ROW result_row;
             result_row = mysql_fetch_row(result);
-            char *data = new char[17];
-            for (int i = 0; i < 16; i++) {
-                data[i] = result_row[0][i];
-            }
-            data[16] = '\0';
             feedback->status = EXPECTED_SUCCESS;
-            feedback->data = data;
+            feedback->data = new char[17];
+            strcpy(feedback->data, result_row[0]);
+            mysql_free_result(result);
+            return feedback;
+        } else {
+            StdLog(ERROR, mysql_error(connection));
+            feedback->status = UNEXPECTED_ERROR;
+            feedback->data = nullptr;
+            mysql_free_result(result);
+            return feedback;
+        }
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        feedback->status = UNEXPECTED_ERROR;
+        feedback->data = nullptr;
+        return feedback;
+    }
+}
+
+SQLFeedback *MySQL_DAO::GetAccountName(const char *account_id) {
+    char *host_name, *domain_name, query[200] = {0}, log_str[200] = {0};
+    auto *feedback = new SQLFeedback;
+    sprintf(query, "select host, domain from account_info where id = '%s';", account_id);
+    if (mysql_query(connection, query) == 0) {
+        MYSQL_RES *result = mysql_store_result(connection);
+        if (result != nullptr) {
+            if (mysql_num_rows(result) == 0) {
+                mysql_free_result(result);
+                memset(log_str, 0, 200);
+                sprintf(log_str, "No such account id '%s'", account_id);
+                StdLog(WARNING, log_str);
+                feedback->status = EXPECTED_ERROR;
+                feedback->data = nullptr;
+                return feedback;
+            }
+            MYSQL_ROW result_row;
+            result_row = mysql_fetch_row(result);
+            host_name = new char[30], domain_name = new char[30];
+            strcpy(host_name, result_row[0]);
+            strcpy(domain_name, result_row[1]);
+            feedback->data = new char[70];
+            strcat(feedback->data, host_name);
+            strcat(feedback->data, "@");
+            strcat(feedback->data, domain_name);
+            feedback->status = EXPECTED_SUCCESS;
             mysql_free_result(result);
             return feedback;
         } else {
@@ -175,8 +214,8 @@ SignUpStatus MySQL_DAO::SignUp(const char *ip, const char *host, const char *dom
     // Check account (host & domain)
     string account;
     account.assign(host).append("@").append(domain);
-    SQLFeedback *feedback = GetAccountID(account.c_str());
-    if (feedback->status == EXPECTED_ERROR) {
+    SQLFeedback *sql_feedback = GetAccountID(account.c_str());
+    if (sql_feedback->status == EXPECTED_ERROR) {
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s@%s' is a valid account", host, domain);
         StdLog(INFO, log_str);
@@ -199,20 +238,24 @@ SignUpStatus MySQL_DAO::SignUp(const char *ip, const char *host, const char *dom
                 hash_id, host, domain, passwd, nickname, description,
                 recovery_question, recovery_answer, 0);
         if (mysql_query(connection, add_account_query) == 0) {
+            delete sql_feedback;
             memset(log_str, 0, 200);
             sprintf(log_str, "Add account '%s@%s' successfully", host, domain);
             StdLog(INFO, log_str);
             return SIGN_UP_SUCCESS;
         } else {
+            delete sql_feedback;
             StdLog(ERROR, mysql_error(connection));
             return SIGN_UP_ERROR;
         }
-    } else if (feedback->status == EXPECTED_SUCCESS) {
+    } else if (sql_feedback->status == EXPECTED_SUCCESS) {
+        delete sql_feedback;
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s@%s' already exists", host, domain);
         StdLog(WARNING, log_str);
         return SIGN_UP_ACCOUNT_CONFLICT;
     } else {
+        delete sql_feedback;
         StdLog(ERROR, mysql_error(connection));
         return SIGN_UP_ERROR;
     }
@@ -381,17 +424,17 @@ Status MySQL_DAO::SendEmail(const char *ip, const char *token, Email *email) {
     }
 }
 
-EmailFeedBack *MySQL_DAO::FetchEmail(const char *ip, const char *token, const char *account, EmailType type) {
+EmailFeedBack *MySQL_DAO::FetchEmail(const char *ip, const char *token, const char *account_name, EmailType type) {
     // TODO: Validate account authentication status
     // Log
     char log_str[200] = {0};
-    sprintf(log_str, "Account '%s' is trying to fetch email", account);
+    sprintf(log_str, "Account '%s' is trying to fetch email", account_name);
     StdLog(INFO, log_str);
     // Get account ID
     char *account_id;
     auto *email_feedback = new EmailFeedBack;
     email_feedback->status = UNEXPECTED_ERROR;
-    SQLFeedback *sql_feedback = GetAccountID(account);
+    SQLFeedback *sql_feedback = GetAccountID(account_name);
     if (sql_feedback->status == EXPECTED_SUCCESS) {
         account_id = sql_feedback->data;
     } else {
@@ -437,7 +480,7 @@ EmailFeedBack *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
             email_feedback->email[i]->body = body[i];
         }
         memset(log_str, 0, 200);
-        sprintf(log_str, "Account '%s' fetches email successfully", account);
+        sprintf(log_str, "Account '%s' fetches email successfully", account_name);
         StdLog(INFO, log_str);
         return email_feedback;
     } else {

@@ -22,11 +22,13 @@ private:
 
     static void StdLog(LogLevel level, const char *msg);
 
-    static char *GetAccountHost(const char *account);
+    static char *GetAccountHost(const char *account_name);
 
-    static char *GetAccountDomain(const char *account);
+    static char *GetAccountDomain(const char *account_name);
 
-    SQLFeedback *GetAccountID(const char *account);
+    SQLFeedback *GetAccountID(const char *account_name);
+
+    SQLFeedback *GetAccountName(const char *account_id);
 
 public:
     MySQL_DAO();
@@ -45,7 +47,7 @@ public:
 
     Status SendEmail(const char *ip, const char *token, Email *email);
 
-    EmailFeedBack *FetchEmail(const char *ip, const char *token, const char *account,EmailType type);
+    EmailFeedBack *FetchEmail(const char *ip, const char *token, const char *account_name, EmailType type);
 };
 
 #endif //LIBLEADAO_LEADAO_H
