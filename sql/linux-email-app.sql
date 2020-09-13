@@ -10,8 +10,8 @@ grant all on email_system.* to 'email_admin'@'%';
 
 # Create tables
 # Create account info table, which contains basic info of every account
-drop table if exists account_info;
-create table account_info
+drop table if exists email_system.account_info;
+create table email_system.account_info
 (
     # Account Hash ID
     id                char(16)     not null,
@@ -34,10 +34,9 @@ create table account_info
     # Lock status, determine whether this account is available:
     #     0: NLOCKED
     #     1: LOCKED
-    locked            int(1)       not null default 0,
+    locked            int          not null default 0,
     primary key (id)
-) charset = utf8
-  collate = utf8_general_ci;
+) charset = UTF8MB4;
 # Create account activity table, which contains basic info of every activity created by every account
 drop table if exists account_activity;
 create table account_activity
@@ -54,18 +53,17 @@ create table account_activity
     #     2: Sing up
     #     3: Recover account
     #     4：Close account
-    action     int(2)      not null default 0,
+    action     int         not null default 0,
     # Activity occurring time
     time       timestamp   not null,
     # Activity status code, currently include:
     #     0: SUCCESS
     #    -1: ERROR
     #     1: UNRELIABLE_SUCCESS
-    status     int(3)      not null default 0,
+    status     int         not null default 0,
     primary key (id),
     foreign key (account_id) references account_info (id)
-) charset = utf8
-  collate = utf8_general_ci;
+) charset = UTF8MB4;
 # Create account token table, which contains token of every sign-in action created by every account
 drop table if exists account_token;
 create table account_token
@@ -83,65 +81,80 @@ create table account_token
     # Token status code, currently include:
     #     0: OPEN
     #    -1: CLOSED
-    status      int(3)      not null default 0,
+    status      int         not null default 0,
     primary key (token),
     foreign key (account_id) references account_info (id)
-) charset = utf8
-  collate = utf8_general_ci;
+) charset = UTF8MB4;
+# Create email accessory table
+drop table if exists accessory;
+create table accessory
+(
+    # Accessory Hash ID
+    id char(16) not null,
+    # TODO: add accessory column
+    # some accessory columns...
+    primary key (id)
+) charset = UTF8MB4;
 # Create email details table
 drop table if exists email;
 create table email
 (
     # Email Hash ID
-    id           char(16)     not null,
+    id                char(16)     not null,
     # Sender ID
-    sender_id    char(16)     not null,
+    sender_id         char(16)     not null,
     # Recipient ID
-    recipient_id char(16)     not null,
+    recipient_id      char(16)     not null,
     # Email send time
-    time         timestamp    not null,
+    time              timestamp    not null,
     # Email title
-    title        varchar(100) not null default '默认标题',
+    title             varchar(100) not null default '默认标题',
     # Email body
-    body         varchar(10000)        default null,
+    body              varchar(10000)        default null,
+    # Email accessory number
+    accessory_num     int                   default 0,
+    # Email accessory ID list
+    accessory_id_list char(160)             default null,
     # Email receiving status, determining whether the email is delivered successfully, include:
     #     0: UNRECEIVED
     #     1: RECEIVED
-    status       int(3)       not null,
+    status            int          not null,
     primary key (id),
     foreign key (sender_id) references account_info (id),
     foreign key (recipient_id) references account_info (id)
-) charset = utf8
-  collate = utf8_general_ci;
+) charset = UTF8MB4;
 # Create draft details table
 drop table if exists draft;
 create table draft
 (
     # Email Hash ID
-    id           char(16)     not null,
+    id                char(16)     not null,
     # Sender ID
-    sender_id    char(16)     not null,
+    sender_id         char(16)     not null,
     # Recipient ID
-    recipient_id char(16)              default null,
+    recipient_id      char(16)              default null,
     # Draft save time
-    time         timestamp    not null,
+    time              timestamp    not null,
     # Draft title
-    title        varchar(100) not null default '默认标题',
+    title             varchar(100) not null default '默认标题',
     # Draft body
-    body         varchar(10000)        default null,
+    body              varchar(10000)        default null,
+    # Email accessory number
+    accessory_num     int                   default 0,
+    # Email accessory ID list
+    accessory_id_list char(160)             default null,
     primary key (id),
     foreign key (sender_id) references account_info (id),
     foreign key (recipient_id) references account_info (id)
-) charset = utf8
-  collate = utf8_general_ci;
+) charset = UTF8MB4;
 # Create contact tables
 drop table if exists contact;
 create table contact
 (
     owner_id   char(16) not null,
     contact_id char(16) not null,
+    alias      varchar(30) default null,
     primary key (owner_id),
     foreign key (owner_id) references account_info (id),
     foreign key (contact_id) references account_info (id)
-) charset = utf8
-  collate = utf8_general_ci;
+) charset = UTF8MB4;
