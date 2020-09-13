@@ -157,11 +157,15 @@ MySQL_DAO::MySQL_DAO() {
 }
 
 MySQL_DAO::MySQL_DAO(const char *host, short port, const char *user, const char *passwd, const char *db) {
-    this->mysql_host = new string(host);
+    this->mysql_host = new char[strlen(host)];
+    strcpy(this->mysql_host, host);
     this->mysql_port = port;
-    this->username = new string(user);
-    this->password = new string(passwd);
-    this->database = new string(db);
+    this->username = new char[strlen(user)];
+    strcpy(this->username, user);
+    this->password = new char[strlen(passwd)];
+    strcpy(this->password, passwd);
+    this->database = new char[strlen(db)];
+    strcpy(this->database, db);
     // Init connection
     this->connection = mysql_init(nullptr);
     if (connection == nullptr)
@@ -185,16 +189,15 @@ MySQL_DAO::~MySQL_DAO() {
 
 bool MySQL_DAO::Connect() {
     // Try real connection
-    connection = mysql_real_connect(connection, this->mysql_host->c_str(), this->username->c_str(),
-                                    this->password->c_str(), this->database->c_str(), this->mysql_port,
-                                    nullptr, 0);
+    connection = mysql_real_connect(connection, this->mysql_host, this->username, this->password, this->database,
+                                    this->mysql_port, nullptr, 0);
     if (connection) {
         StdLog(INFO, "Real connection establishment succeeded");
         // Set charset
         if (!mysql_set_character_set(connection, "utf8")) {
-            string log_str = "Successfully set charset: ";
-            log_str.append(mysql_character_set_name(connection));
-            StdLog(INFO, log_str.c_str());
+            char log_str[200] = {0};
+            sprintf(log_str, "Successfully set charset: %s", mysql_character_set_name(connection));
+            StdLog(INFO, log_str);
         }
         return true;
     } else {
@@ -212,9 +215,9 @@ SignUpStatus MySQL_DAO::SignUp(const char *ip, const char *host, const char *dom
     sprintf(log_str, "Account '%s@%s' is trying to sign up", host, domain);
     StdLog(INFO, log_str);
     // Check account (host & domain)
-    string account;
-    account.assign(host).append("@").append(domain);
-    SQLFeedback *sql_feedback = GetAccountID(account.c_str());
+    char account_name[70] = {0};
+    sprintf(account_name, "%s@%s", host, domain);
+    SQLFeedback *sql_feedback = GetAccountID(account_name);
     if (sql_feedback->status == EXPECTED_ERROR) {
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s@%s' is a valid account", host, domain);

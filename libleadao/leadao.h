@@ -3,9 +3,10 @@
 
 #include <mysql/mysql.h>
 #include <openssl/sha.h>
-#include <string>
-#include <ctime>
+#include <cstdlib>
+#include <cstdio>
 #include <cstring>
+#include <ctime>
 #include "type.h"
 
 using namespace std;
@@ -13,11 +14,11 @@ using namespace std;
 class MySQL_DAO {
 
 private:
-    string *mysql_host;
+    char *mysql_host;
     unsigned int mysql_port;
-    string *username;
-    string *password;
-    string *database;
+    char *username;
+    char *password;
+    char *database;
     MYSQL *connection;
 
     static void StdLog(LogLevel level, const char *msg);

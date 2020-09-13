@@ -3,18 +3,24 @@
 
 int main() {
     // Init MySQL connection
-    auto *mySqlDao = new MySQL_DAO("127.0.0.1", 3306,
-                                   "email_admin", "email_admin_passwd", "email_system");
+    auto *mysql_dao = new MySQL_DAO("127.0.0.1", 3306,
+                                    "email_admin", "email_admin_passwd", "email_system");
     // Connect to MySQL server
-    mySqlDao->Connect();
+    mysql_dao->Connect();
+    // Sign up function
+    SignUpStatus signup_status;
+    signup_status = mysql_dao->SignUp("127.0.0.1", "aaa", "bbb", "ccc",
+                                      "ddd", "eee", "fff", "ggg");
+    if (signup_status == SignUpStatus::SIGN_UP_SUCCESS)
+        printf("[console] Account aaa@bbb sign up successfully\n");
+    else if (signup_status == SignUpStatus::SIGN_UP_ACCOUNT_CONFLICT)
+        printf("[console] Account aaa@bbb sign up unsuccessfully, already exists\n");
+    else
+        printf("[console] Account aaa@bbb sign up unsuccessfully, unexpected error\n");
     // Sign in function
     SignInFeedback *feedback;
-    feedback = mySqlDao->SignIn("127.0.0.1", "aaa@bbb", "ccc");
-    printf("status: %d, token: %s, nickname: %s, description: %s\n",
-           feedback->status, feedback->token, feedback->nickname, feedback->description);
-    delete feedback;
-    feedback = mySqlDao->SignIn("127.0.0.1", "111@222", "333");
-    printf("status: %d, token: %s, nickname: %s, description: %s\n",
+    feedback = mysql_dao->SignIn("127.0.0.1", "aaa@bbb", "ccc");
+    printf("[console] Sign in successfully: status: %d, token: %s, nickname: %s, description: %s\n",
            feedback->status, feedback->token, feedback->nickname, feedback->description);
     delete feedback;
     // Send email function
@@ -27,19 +33,19 @@ int main() {
     sprintf(email.recipient, "111@222");
     sprintf(email.title, "Test");
     sprintf(email.body, "Test email.");
-    mySqlDao->SendEmail("127.0.0.1", "null", &email);
+    mysql_dao->SendEmail("127.0.0.1", "null", &email);
     // Fetch email function
-    EmailFeedBack *email_feedback = mySqlDao->FetchEmail("127.0.0.1", "null",
-                                                         "111@222", EmailType::IN);
-    printf("email_status:%d, email_num:%d\n", email_feedback->status, email_feedback->email_num);
+    EmailFeedBack *email_feedback = mysql_dao->FetchEmail("127.0.0.1", "null",
+                                                          "aaa@bbb", EmailType::OUT);
+    printf("[console] email_status:%d, email_num:%d\n", email_feedback->status, email_feedback->email_num);
     if (email_feedback->status == EXPECTED_SUCCESS)
         for (int i = 0; i < email_feedback->email_num; i++) {
-            printf("sender: %s, recipient: %s, time: %s, title: %s, body: %s\n",
+            printf("[console] Email No.%d: sender: %s, recipient: %s, time: %s, title: %s, body: %s\n", i,
                    email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
                    email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body);
         }
     // Close MySQL connection
-    delete mySqlDao;
+    delete mysql_dao;
 
     return 0;
 }
