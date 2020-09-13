@@ -2,9 +2,12 @@
 #include "type.h"
 
 int main() {
+    // Init MySQL connection
     auto *mySqlDao = new MySQL_DAO("127.0.0.1", 3306,
                                    "email_admin", "email_admin_passwd", "email_system");
+    // Connect to MySQL server
     mySqlDao->Connect();
+    // Sign in function
     SignInFeedback *feedback;
     feedback = mySqlDao->SignIn("127.0.0.1", "aaa@bbb", "ccc");
     printf("status: %d, token: %s, nickname: %s, description: %s\n",
@@ -14,7 +17,7 @@ int main() {
     printf("status: %d, token: %s, nickname: %s, description: %s\n",
            feedback->status, feedback->token, feedback->nickname, feedback->description);
     delete feedback;
-
+    // Send email function
     Email email{};
     email.sender = new char[30];
     email.recipient = new char[30];
@@ -25,17 +28,17 @@ int main() {
     sprintf(email.title, "Test");
     sprintf(email.body, "Test email.");
     mySqlDao->SendEmail("127.0.0.1", "null", &email);
-
-//    EmailFeedBack *email_feedback = mySqlDao->FetchEmail("127.0.0.1", "null",
-//                                                         "111@222", EmailType::OUT);
-//    printf("email_status:%d, email_num:%d\n", email_feedback->status, email_feedback->email_num);
-//    if (email_feedback->status == EXPECTED_SUCCESS)
-//        for (int i = 0; i < email_feedback->email_num; i++) {
-//            printf("sender: %s, recipient: %s, time: %s, title: %s, body: %s\n",
-//                   email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
-//                   email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body);
-//        }
-
+    // Fetch email function
+    EmailFeedBack *email_feedback = mySqlDao->FetchEmail("127.0.0.1", "null",
+                                                         "111@222", EmailType::IN);
+    printf("email_status:%d, email_num:%d\n", email_feedback->status, email_feedback->email_num);
+    if (email_feedback->status == EXPECTED_SUCCESS)
+        for (int i = 0; i < email_feedback->email_num; i++) {
+            printf("sender: %s, recipient: %s, time: %s, title: %s, body: %s\n",
+                   email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
+                   email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body);
+        }
+    // Close MySQL connection
     delete mySqlDao;
 
     return 0;

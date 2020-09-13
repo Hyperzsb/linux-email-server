@@ -1,6 +1,8 @@
 #ifndef LIBLEADAO_TYPE_H
 #define LIBLEADAO_TYPE_H
 
+// Enums
+
 enum LogLevel {
     INFO = 0,
     WARNING = 1,
@@ -12,11 +14,6 @@ enum Status {
     UNEXPECTED_SUCCESS = 1,
     EXPECTED_ERROR = 2,
     UNEXPECTED_ERROR = 3
-};
-
-struct SQLFeedback {
-    Status status;
-    char *data;
 };
 
 enum SignUpStatus {
@@ -32,13 +29,6 @@ enum SignInStatus {
     SIGN_IN_INVALID_PASSWD = 3
 };
 
-struct SignInFeedback {
-    SignInStatus status;
-    char *token;
-    char *nickname;
-    char *description;
-};
-
 enum RecoverStatus {
     RECOVER_SUCCESS = 0,
     RECOVER_ERROR = 1,
@@ -48,6 +38,20 @@ enum RecoverStatus {
 enum EmailType {
     IN = 0,
     OUT = 1
+};
+
+// Structures
+
+struct SQLFeedback {
+    Status status;
+    char *data;
+};
+
+struct SignInFeedback {
+    SignInStatus status;
+    char *token;
+    char *nickname;
+    char *description;
 };
 
 struct Email {

@@ -414,14 +414,27 @@ EmailFeedBack *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
         email_feedback->status = EXPECTED_SUCCESS;
         email_feedback->email_num = email_num;
         email_feedback->email = new Email *[email_num];
+        char **sender = new char *[email_num], **recipient = new char *[email_num], **time = new char *[email_num],
+                **title = new char *[email_num], **body = new char *[email_num];
         MYSQL_ROW result_row;
         for (int i = 0; i < email_num; i++) {
             result_row = mysql_fetch_row(result);
-            email_feedback->email[i]->sender = result_row[0];
-            email_feedback->email[i]->recipient = result_row[1];
-            email_feedback->email[i]->time = result_row[2];
-            email_feedback->email[i]->title = result_row[3];
-            email_feedback->email[i]->body = result_row[4];
+            email_feedback->email[i] = new Email;
+            sender[i] = new char[strlen(result_row[0])];
+            strcpy(sender[i], result_row[0]);
+            email_feedback->email[i]->sender = sender[i];
+            recipient[i] = new char[strlen(result_row[1])];
+            strcpy(recipient[i], result_row[1]);
+            email_feedback->email[i]->recipient = recipient[i];
+            time[i] = new char[strlen(result_row[2])];
+            strcpy(time[i], result_row[2]);
+            email_feedback->email[i]->time = time[i];
+            title[i] = new char[strlen(result_row[3])];
+            strcpy(title[i], result_row[3]);
+            email_feedback->email[i]->title = title[i];
+            body[i] = new char[strlen(result_row[4])];
+            strcpy(body[i], result_row[4]);
+            email_feedback->email[i]->body = body[i];
         }
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s' fetches email successfully", account);
@@ -434,6 +447,4 @@ EmailFeedBack *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
         email_feedback->email = nullptr;
         return email_feedback;
     }
-
-    return nullptr;
 }
