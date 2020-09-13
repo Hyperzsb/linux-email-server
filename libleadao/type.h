@@ -62,10 +62,21 @@ struct Email {
     char *body;
 };
 
-struct EmailFeedBack {
+struct EmailFeedback {
     Status status;
     int email_num;
     Email **email;
+};
+
+struct Contact {
+    char *contact_name;
+    char *alias;
+};
+
+struct ContactFeedback {
+    Status status;
+    int contact_num;
+    Contact **contact;
 };
 
 #endif //LIBLEADAO_TYPE_H

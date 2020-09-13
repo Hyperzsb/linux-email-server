@@ -388,9 +388,6 @@ Status MySQL_DAO::SendEmail(const char *ip, const char *token, Email *email) {
         StdLog(ERROR, mysql_error(connection));
         return UNEXPECTED_ERROR;
     }
-    memset(log_str, 0, 200);
-    sprintf(log_str, "sender_id: '%s', recipient_id: '%s'", sender_id, recipient_id);
-    StdLog(INFO, log_str);
     // Add email to database
     SHA256_CTX sha256_ctx;
     SHA256_Init(&sha256_ctx);
@@ -410,33 +407,30 @@ Status MySQL_DAO::SendEmail(const char *ip, const char *token, Email *email) {
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&time_type));
     char query[11000] = {0};
     sprintf(query, "insert into email (id, sender_id, recipient_id, time, title, body, status)"
-                   "value ('%s', '%s', '%s', now(), '%s', '%s', %d);",
-            email_id, sender_id, recipient_id, email->title, email->body, 0);
+                   "value ('%s', '%s', '%s', '%s', '%s', '%s', %d);",
+            email_id, sender_id, recipient_id, time_str, email->title, email->body, 0);
+    delete sender_feedback;
+    delete recipient_feedback;
     if (mysql_query(connection, query) == 0) {
         memset(log_str, 0, 200);
         sprintf(log_str, "Sending email from '%s' to '%s' successfully", email->sender, email->recipient);
         StdLog(INFO, log_str);
-        delete sender_feedback;
-        delete recipient_feedback;
         return EXPECTED_SUCCESS;
     } else {
         StdLog(ERROR, mysql_error(connection));
-        delete sender_feedback;
-        delete recipient_feedback;
         return UNEXPECTED_ERROR;
     }
 }
 
-EmailFeedBack *MySQL_DAO::FetchEmail(const char *ip, const char *token, const char *account_name, EmailType type) {
+EmailFeedback *MySQL_DAO::FetchEmail(const char *ip, const char *token, const char *account_name, EmailType type) {
     // TODO: Validate account authentication status
     // Log
     char log_str[200] = {0};
     sprintf(log_str, "Account '%s' is trying to fetch email", account_name);
     StdLog(INFO, log_str);
     // Get account ID
+    auto *email_feedback = new EmailFeedback;
     char *account_id;
-    auto *email_feedback = new EmailFeedBack;
-    email_feedback->status = UNEXPECTED_ERROR;
     SQLFeedback *sql_feedback = GetAccountID(account_name);
     if (sql_feedback->status == EXPECTED_SUCCESS) {
         account_id = sql_feedback->data;
@@ -492,5 +486,97 @@ EmailFeedBack *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
         email_feedback->email_num = 0;
         email_feedback->email = nullptr;
         return email_feedback;
+    }
+}
+
+Status MySQL_DAO::SetContact(const char *ip, const char *token, const char *account_name, Contact *contact) {
+    // TODO: Validate account authentication status
+    // Log
+    char log_str[200] = {0};
+    sprintf(log_str, "Account '%s' is trying to add contact '%s'", account_name, contact->contact_name);
+    StdLog(INFO, log_str);
+    // Get owner ID
+    char *owner_id;
+    SQLFeedback *owner_sql_feedback = GetAccountID(account_name);
+    if (owner_sql_feedback->status == EXPECTED_SUCCESS) {
+        owner_id = owner_sql_feedback->data;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        return UNEXPECTED_ERROR;
+    }
+    // Get contact ID
+    char *contact_id;
+    SQLFeedback *contact_sql_feedback = GetAccountID(contact->contact_name);
+    if (contact_sql_feedback->status == EXPECTED_SUCCESS) {
+        contact_id = contact_sql_feedback->data;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        return UNEXPECTED_ERROR;
+    }
+    char query[200] = {0};
+    sprintf(query, "insert into contact (owner_id, contact_id, alias) value ('%s', '%s', '%s');",
+            owner_id, contact_id, contact->alias);
+    delete owner_sql_feedback;
+    delete contact_sql_feedback;
+    if (mysql_query(connection, query) == 0) {
+        memset(log_str, 0, 200);
+        sprintf(log_str, "Add contact '%s' to '%s' successfully", account_name, contact->contact_name);
+        StdLog(INFO, log_str);
+        return EXPECTED_SUCCESS;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        return UNEXPECTED_ERROR;
+    }
+}
+
+ContactFeedback *MySQL_DAO::GetContact(const char *ip, const char *token, const char *account_name) {
+    // TODO: Validate account authentication status
+    // Log
+    char log_str[200] = {0};
+    sprintf(log_str, "Account '%s' is trying to get contact", account_name);
+    StdLog(INFO, log_str);
+    // Get account ID
+    auto contact_feedback = new ContactFeedback;
+    char *account_id;
+    SQLFeedback *sql_feedback = GetAccountID(account_name);
+    if (sql_feedback->status == EXPECTED_SUCCESS) {
+        account_id = sql_feedback->data;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        contact_feedback->status = UNEXPECTED_ERROR;
+        contact_feedback->contact_num = 0;
+        contact_feedback->contact = nullptr;
+        return contact_feedback;
+    }
+    char query[200] = {0};
+    sprintf(query, "select contact_id, alias from email where owner_id = '%s';", account_id);
+    if (mysql_query(connection, query) == 0) {
+        MYSQL_RES *result = mysql_store_result(connection);
+        int contact_num = mysql_num_rows(result);
+        contact_feedback->status = EXPECTED_SUCCESS;
+        contact_feedback->contact_num = contact_num;
+        contact_feedback->contact = new Contact *[contact_num];
+        char **contact = new char *[contact_num], **alias = new char *[contact_num];
+        MYSQL_ROW result_row;
+        for (int i = 0; i < contact_num; i++) {
+            result_row = mysql_fetch_row(result);
+            contact_feedback->contact[i] = new Contact;
+            contact[i] = new char[strlen(result_row[0])];
+            strcpy(contact[i], result_row[0]);
+            contact_feedback->contact[i]->contact_name = contact[i];
+            alias[i] = new char[strlen(result_row[1])];
+            strcpy(alias[i], result_row[1]);
+            contact_feedback->contact[i]->alias = alias[i];
+        }
+        memset(log_str, 0, 200);
+        sprintf(log_str, "Account '%s' fetches email successfully", account_name);
+        StdLog(INFO, log_str);
+        return contact_feedback;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        contact_feedback->status = UNEXPECTED_ERROR;
+        contact_feedback->contact_num = 0;
+        contact_feedback->contact = nullptr;
+        return contact_feedback;
     }
 }

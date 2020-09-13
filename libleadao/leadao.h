@@ -48,7 +48,11 @@ public:
 
     Status SendEmail(const char *ip, const char *token, Email *email);
 
-    EmailFeedBack *FetchEmail(const char *ip, const char *token, const char *account_name, EmailType type);
+    EmailFeedback *FetchEmail(const char *ip, const char *token, const char *account_name, EmailType type);
+
+    Status SetContact(const char *ip, const char *token, const char *account_name, Contact *contact);
+
+    ContactFeedback *GetContact(const char *ip, const char *token, const char *account_name);
 };
 
 #endif //LIBLEADAO_LEADAO_H
