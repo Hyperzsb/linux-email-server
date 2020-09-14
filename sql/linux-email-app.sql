@@ -129,10 +129,10 @@ create table draft
 (
     # Email Hash ID
     id                char(16)     not null,
-    # Sender ID
+    # Sender Name
     sender_id         char(16)     not null,
-    # Recipient ID
-    recipient_id      char(16)              default '#',
+    # Recipient Name
+    recipient_name    char(100)             default '',
     # Draft save time
     time              timestamp    not null,
     # Draft title
@@ -144,8 +144,7 @@ create table draft
     # Email accessory ID list
     accessory_id_list char(160)             default '',
     primary key (id),
-    foreign key (sender_id) references account_info (id),
-    foreign key (recipient_id) references account_info (id)
+    foreign key (sender_id) references account_info (id)
 ) charset = UTF8MB4;
 # Create contact tables
 drop table if exists contact;
