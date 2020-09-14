@@ -62,7 +62,7 @@ create table account_activity
     #     1: UNRELIABLE_SUCCESS
     status     int         not null default 0,
     primary key (id),
-    foreign key (account_id) references account_info (id)
+    foreign key (account_id) references account_info (id) on delete cascade on update cascade
 ) charset = UTF8MB4;
 # Create account token table, which contains token of every sign-in action created by every account
 drop table if exists account_token;
@@ -83,7 +83,7 @@ create table account_token
     #    -1: CLOSED
     status      int         not null default 0,
     primary key (token),
-    foreign key (account_id) references account_info (id)
+    foreign key (account_id) references account_info (id) on delete cascade on update cascade
 ) charset = UTF8MB4;
 # Create email accessory table
 drop table if exists accessory;
@@ -120,8 +120,8 @@ create table email
     #     1: RECEIVED
     status            int          not null,
     primary key (id),
-    foreign key (sender_id) references account_info (id),
-    foreign key (recipient_id) references account_info (id)
+    foreign key (sender_id) references account_info (id) on delete cascade on update cascade,
+    foreign key (recipient_id) references account_info (id) on delete cascade on update cascade
 ) charset = UTF8MB4;
 # Create draft details table
 drop table if exists draft;
@@ -144,7 +144,7 @@ create table draft
     # Email accessory ID list
     accessory_id_list char(160)             default '',
     primary key (id),
-    foreign key (sender_id) references account_info (id)
+    foreign key (sender_id) references account_info (id) on delete cascade on update cascade
 ) charset = UTF8MB4;
 # Create contact tables
 drop table if exists contact;
@@ -154,6 +154,6 @@ create table contact
     contact_id char(16) not null,
     alias      varchar(30) default '',
     primary key (owner_id),
-    foreign key (owner_id) references account_info (id),
-    foreign key (contact_id) references account_info (id)
+    foreign key (owner_id) references account_info (id) on delete cascade on update cascade,
+    foreign key (contact_id) references account_info (id) on delete cascade on update cascade
 ) charset = UTF8MB4;
