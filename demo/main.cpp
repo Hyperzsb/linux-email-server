@@ -119,12 +119,14 @@ int main() {
     }
     */
     // Delete
+    /*
     Status delete_status = mysql_dao->Delete("127.0.0.1", "null", "aaa@bbb");
     if (delete_status == EXPECTED_SUCCESS) {
         printf("[console] Account 'aaa@bbb' deletes itself successfully\n");
     } else {
         printf("[console] Account 'aaa@bbb' deletes itself unsuccessfully\n");
     }
+    */
     // Close MySQL connection
     delete mysql_dao;
 

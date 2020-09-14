@@ -45,25 +45,34 @@ enum EmailType {
 struct SQLFeedback {
     Status status;
     char *data;
+
+    ~SQLFeedback();
 };
 
 struct Identity {
     char *ip;
     char *token;
     char *account_name;
+
+    ~Identity();
 };
 
-struct SignInFeedback {
+class SignInFeedback {
+public:
     SignInStatus status;
     char *token;
     char *nickname;
     char *description;
+
+    ~SignInFeedback();
 };
 
 struct RecoverFeedback {
     Status status;
     char *token;
     char *question;
+
+    ~RecoverFeedback();
 };
 
 struct Email {
@@ -72,23 +81,35 @@ struct Email {
     char *time;
     char *title;
     char *body;
+
+    ~Email();
 };
 
 struct EmailFeedback {
     Status status;
     int email_num;
     Email **email;
+
+    EmailFeedback();
+
+    ~EmailFeedback();
 };
 
 struct Contact {
     char *contact_name;
     char *alias;
+
+    ~Contact();
 };
 
 struct ContactFeedback {
     Status status;
     int contact_num;
     Contact **contact;
+
+    ContactFeedback();
+
+    ~ContactFeedback();
 };
 
 #endif //LIBLEADAO_TYPE_H

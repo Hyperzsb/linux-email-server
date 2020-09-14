@@ -86,7 +86,7 @@ SQLFeedback *MySQL_DAO::GetAccountID(const char *account_name) {
             MYSQL_ROW result_row;
             result_row = mysql_fetch_row(result);
             feedback->status = EXPECTED_SUCCESS;
-            feedback->data = new char[17];
+            feedback->data = new char[strlen(result_row[0])];
             strcpy(feedback->data, result_row[0]);
             mysql_free_result(result);
             return feedback;
@@ -129,7 +129,7 @@ SQLFeedback *MySQL_DAO::GetAccountName(const char *account_id) {
             host_name = new char[30], domain_name = new char[30];
             sprintf(host_name, "%s", result_row[0]);
             sprintf(domain_name, "%s", result_row[1]);
-            feedback->data = new char[70];
+            feedback->data = new char[strlen(result_row[0]) + strlen(result_row[1]) + 2];
             sprintf(feedback->data, "%s@%s", host_name, domain_name);
             feedback->status = EXPECTED_SUCCESS;
             mysql_free_result(result);
@@ -342,8 +342,12 @@ SignInFeedback *MySQL_DAO::SignIn(const char *ip, const char *account_name, cons
                     result = mysql_store_result(connection);
                     if (result != nullptr) {
                         result_row = mysql_fetch_row(result);
-                        feedback->nickname = result_row[0];
-                        feedback->description = result_row[1];
+                        char *nickname = new char[strlen(result_row[0])];
+                        strcpy(nickname, result_row[0]);
+                        feedback->nickname = nickname;
+                        char *description = new char[strlen(result_row[1])];
+                        strcpy(description, result_row[1]);
+                        feedback->description = description;
                     } else {
                         // Log
                         StdLog(ERROR, mysql_error(connection));

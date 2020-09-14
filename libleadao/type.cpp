@@ -1,4 +1,5 @@
 #include "type.h"
+#include <cstdio>
 
 SQLFeedback::~SQLFeedback() {
     delete[]this->data;
