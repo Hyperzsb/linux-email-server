@@ -48,7 +48,9 @@ public:
 
     RecoverFeedback *GetRecoverQuestion(const char *ip, const char *account_name);
 
-    Status Recover(const char *ip, const char *token, const char *answer, const char *passwd);
+    RecoverStatus Recover(const char *ip, const char *token, const char *account_name, const char *answer, const char *passwd);
+
+    Status Delete(const char *ip, const char *token, const char *account_name);
 
     Status SendEmail(const char *ip, const char *token, const char *account_name, Email *email);
 
