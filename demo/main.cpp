@@ -8,7 +8,6 @@ int main() {
     // Connect to MySQL server
     mysql_dao->Connect();
     // Sign up function
-    /*
     SignUpStatus signup_status;
     signup_status = mysql_dao->SignUp("127.0.0.1", "aaa", "bbb", "ccc",
                                       "ddd", "eee", "fff", "ggg");
@@ -26,7 +25,6 @@ int main() {
         printf("[console] Account 111@222 sign up unsuccessfully, already exists\n");
     else
         printf("[console] Account 111@222 sign up unsuccessfully, unexpected error\n");
-    */
     // Sign in function
     SignInFeedback *feedback;
     feedback = mysql_dao->SignIn("127.0.0.1", "aaa@bbb", "ccc");
@@ -38,7 +36,6 @@ int main() {
            feedback->status, feedback->token, feedback->nickname, feedback->description);
     delete feedback;
     // Send email function
-    /*
     Email email{};
     email.sender = new char[30];
     email.recipient = new char[30];
@@ -49,7 +46,6 @@ int main() {
     sprintf(email.title, "Test");
     sprintf(email.body, "Just a test email.");
     mysql_dao->SendEmail("127.0.0.1", "null", "aaa@bbb", &email);
-    */
     // Fetch email function
     EmailFeedback *email_feedback = mysql_dao->FetchEmail("127.0.0.1", "null",
                                                           "aaa@bbb", EmailType::OUT);
@@ -82,12 +78,11 @@ int main() {
     sprintf(draft.title, "Test");
     sprintf(draft.body, "Just a test draft.");
     mysql_dao->SaveDraft("127.0.0.1", "null", "aaa@bbb", &draft);
-    delete[]draft.recipient;
-    draft.recipient = nullptr;
+    strcpy(draft.recipient, "");
     mysql_dao->SaveDraft("127.0.0.1", "null", "aaa@bbb", &draft);
     */
     // Fetch draft function
-    EmailFeedback *draft_feedback = mysql_dao->FetchDraft("127.0.0.1", "null","aaa@bbb");
+    EmailFeedback *draft_feedback = mysql_dao->FetchDraft("127.0.0.1", "null", "aaa@bbb");
     printf("[console] email_status:%d, email_num:%d\n", draft_feedback->status, draft_feedback->email_num);
     if (draft_feedback->status == EXPECTED_SUCCESS)
         for (int i = 0; i < draft_feedback->email_num; i++) {

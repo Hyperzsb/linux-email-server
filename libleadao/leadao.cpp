@@ -506,32 +506,20 @@ Status MySQL_DAO::SaveDraft(const char *ip, const char *token, const char *accou
     sprintf(log_str, "Account '%s' is trying to save draft", draft->sender);
     StdLog(INFO, log_str);
     // Get account ID
-    char *sender_id, *recipient_id;
-    // Get sender account ID
-    SQLFeedback *sender_feedback = GetAccountID(draft->sender);
-    if (sender_feedback->status == EXPECTED_SUCCESS) {
-        sender_id = sender_feedback->data;
+    char *account_id;
+    SQLFeedback *sql_feedback = GetAccountID(draft->sender);
+    if (sql_feedback->status == EXPECTED_SUCCESS) {
+        account_id = sql_feedback->data;
     } else {
         StdLog(ERROR, mysql_error(connection));
         return UNEXPECTED_ERROR;
     }
-    // Get recipient account sID
-    SQLFeedback *recipient_feedback;
-    if (draft->recipient != nullptr) {
-        recipient_feedback = GetAccountID(draft->recipient);
-        if (recipient_feedback->status == EXPECTED_SUCCESS) {
-            recipient_id = recipient_feedback->data;
-        } else {
-            StdLog(ERROR, mysql_error(connection));
-            return UNEXPECTED_ERROR;
-        }
-    }
     // Add email to database
     SHA256_CTX sha256_ctx;
     SHA256_Init(&sha256_ctx);
-    SHA256_Update(&sha256_ctx, sender_id, strlen(sender_id));
+    SHA256_Update(&sha256_ctx, account_id, strlen(account_id));
     if (draft->recipient != nullptr)
-        SHA256_Update(&sha256_ctx, recipient_id, strlen(recipient_id));
+        SHA256_Update(&sha256_ctx, draft->recipient, strlen(draft->recipient));
     char time_str[20] = {0};
     time_t time_type;
     time(&time_type);
@@ -545,16 +533,9 @@ Status MySQL_DAO::SaveDraft(const char *ip, const char *token, const char *accou
     email_id[16] = '\0';
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&time_type));
     char query[11000] = {0};
-    if (draft->recipient != nullptr)
-        sprintf(query, "insert into draft (id, sender_id, recipient_id, time, title, body)"
-                       "value ('%s', '%s', '%s', '%s', '%s', '%s');",
-                email_id, sender_id, recipient_id, time_str, draft->title, draft->body);
-    else
-        sprintf(query, "insert into draft (id, sender_id, time, title, body)"
-                       "value ('%s', '%s', '%s', '%s', '%s');",
-                email_id, sender_id, time_str, draft->title, draft->body);
-    delete sender_feedback;
-    delete recipient_feedback;
+    sprintf(query, "insert into draft (id, sender_id, recipient_name, time, title, body)"
+                   "value ('%s', '%s', '%s', '%s', '%s', '%s');",
+            email_id, account_id, draft->recipient, time_str, draft->title, draft->body);
     if (mysql_query(connection, query) == 0) {
         memset(log_str, 0, 200);
         sprintf(log_str, "Saving draft to account '%s' successfully", draft->sender);
@@ -586,7 +567,7 @@ EmailFeedback *MySQL_DAO::FetchDraft(const char *ip, const char *token, const ch
         return draft_feedback;
     }
     char query[200] = {0};
-    sprintf(query, "select sender_id, recipient_id, time, title, body from draft "
+    sprintf(query, "select sender_id, recipient_name, time, title, body from draft "
                    "where sender_id = '%s';", account_id);
     if (mysql_query(connection, query) == 0) {
         MYSQL_RES *result = mysql_store_result(connection);
@@ -607,15 +588,8 @@ EmailFeedback *MySQL_DAO::FetchDraft(const char *ip, const char *token, const ch
             strcpy(sender[i], name_sql_feedback->data);
             delete name_sql_feedback;
             draft_feedback->email[i]->sender = sender[i];
-            if (strcmp(result_row[1], "#") == 0) {
-                recipient[i] = new char[1];
-                recipient[i][0] = '\0';
-            } else {
-                name_sql_feedback = GetAccountName(result_row[1]);
-                recipient[i] = new char[strlen(name_sql_feedback->data)];
-                strcpy(recipient[i], name_sql_feedback->data);
-                delete name_sql_feedback;
-            }
+            recipient[i] = new char[strlen(result_row[1])];
+            strcpy(recipient[i], result_row[1]);
             draft_feedback->email[i]->recipient = recipient[i];
             time[i] = new char[strlen(result_row[2])];
             strcpy(time[i], result_row[2]);
