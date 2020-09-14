@@ -46,9 +46,17 @@ public:
 
     SignInFeedback *SignIn(const char *ip, const char *account_name, const char *account_passwd);
 
-    Status SendEmail(const char *ip, const char *token, Email *email);
+    RecoverFeedback *GetRecoverQuestion(const char *ip, const char *account_name);
+
+    Status Recover(const char *ip, const char *token, const char *answer, const char *passwd);
+
+    Status SendEmail(const char *ip, const char *token, const char *account_name, Email *email);
 
     EmailFeedback *FetchEmail(const char *ip, const char *token, const char *account_name, EmailType type);
+
+    Status SaveDraft(const char *ip, const char *token, const char *account_name, Email *draft);
+
+    EmailFeedback *FetchDraft(const char *ip, const char *token, const char *account_name);
 
     Status SetContact(const char *ip, const char *token, const char *account_name, Contact *contact);
 

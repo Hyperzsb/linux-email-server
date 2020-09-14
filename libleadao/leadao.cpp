@@ -123,12 +123,10 @@ SQLFeedback *MySQL_DAO::GetAccountName(const char *account_id) {
             MYSQL_ROW result_row;
             result_row = mysql_fetch_row(result);
             host_name = new char[30], domain_name = new char[30];
-            strcpy(host_name, result_row[0]);
-            strcpy(domain_name, result_row[1]);
+            sprintf(host_name, "%s", result_row[0]);
+            sprintf(domain_name, "%s", result_row[1]);
             feedback->data = new char[70];
-            strcat(feedback->data, host_name);
-            strcat(feedback->data, "@");
-            strcat(feedback->data, domain_name);
+            sprintf(feedback->data, "%s@%s", host_name, domain_name);
             feedback->status = EXPECTED_SUCCESS;
             mysql_free_result(result);
             return feedback;
@@ -363,7 +361,15 @@ SignInFeedback *MySQL_DAO::SignIn(const char *ip, const char *account_name, cons
     }
 }
 
-Status MySQL_DAO::SendEmail(const char *ip, const char *token, Email *email) {
+RecoverFeedback *MySQL_DAO::GetRecoverQuestion(const char *ip, const char *account_name) {
+    return nullptr;
+}
+
+Status MySQL_DAO::Recover(const char *ip, const char *token, const char *answer, const char *passwd) {
+    return EXPECTED_SUCCESS;
+}
+
+Status MySQL_DAO::SendEmail(const char *ip, const char *token, const char *account_name, Email *email) {
     // TODO: Validate account authentication status
     // Log
     char log_str[200] = {0};
@@ -460,11 +466,15 @@ EmailFeedback *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
         for (int i = 0; i < email_num; i++) {
             result_row = mysql_fetch_row(result);
             email_feedback->email[i] = new Email;
-            sender[i] = new char[strlen(result_row[0])];
-            strcpy(sender[i], result_row[0]);
+            SQLFeedback *name_sql_feedback = GetAccountName(result_row[0]);
+            sender[i] = new char[strlen(name_sql_feedback->data)];
+            strcpy(sender[i], name_sql_feedback->data);
+            delete name_sql_feedback;
             email_feedback->email[i]->sender = sender[i];
-            recipient[i] = new char[strlen(result_row[1])];
-            strcpy(recipient[i], result_row[1]);
+            name_sql_feedback = GetAccountName(result_row[1]);
+            recipient[i] = new char[strlen(name_sql_feedback->data)];
+            strcpy(recipient[i], name_sql_feedback->data);
+            delete name_sql_feedback;
             email_feedback->email[i]->recipient = recipient[i];
             time[i] = new char[strlen(result_row[2])];
             strcpy(time[i], result_row[2]);
@@ -486,6 +496,147 @@ EmailFeedback *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
         email_feedback->email_num = 0;
         email_feedback->email = nullptr;
         return email_feedback;
+    }
+}
+
+Status MySQL_DAO::SaveDraft(const char *ip, const char *token, const char *account_name, Email *draft) {
+    // TODO: Validate account authentication status
+    // Log
+    char log_str[200] = {0};
+    sprintf(log_str, "Account '%s' is trying to save draft", draft->sender);
+    StdLog(INFO, log_str);
+    // Get account ID
+    char *sender_id, *recipient_id;
+    // Get sender account ID
+    SQLFeedback *sender_feedback = GetAccountID(draft->sender);
+    if (sender_feedback->status == EXPECTED_SUCCESS) {
+        sender_id = sender_feedback->data;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        return UNEXPECTED_ERROR;
+    }
+    // Get recipient account sID
+    SQLFeedback *recipient_feedback;
+    if (draft->recipient != nullptr) {
+        recipient_feedback = GetAccountID(draft->recipient);
+        if (recipient_feedback->status == EXPECTED_SUCCESS) {
+            recipient_id = recipient_feedback->data;
+        } else {
+            StdLog(ERROR, mysql_error(connection));
+            return UNEXPECTED_ERROR;
+        }
+    }
+    // Add email to database
+    SHA256_CTX sha256_ctx;
+    SHA256_Init(&sha256_ctx);
+    SHA256_Update(&sha256_ctx, sender_id, strlen(sender_id));
+    if (draft->recipient != nullptr)
+        SHA256_Update(&sha256_ctx, recipient_id, strlen(recipient_id));
+    char time_str[20] = {0};
+    time_t time_type;
+    time(&time_type);
+    sprintf(time_str, "%d", (int) time_type);
+    SHA256_Update(&sha256_ctx, time_str, strlen(time_str));
+    unsigned char raw_email_id[32] = {0};
+    SHA256_Final(raw_email_id, &sha256_ctx);
+    char email_id[17] = {0};
+    for (int i = 0; i < 8; i++)
+        sprintf(email_id + i * 2, "%02x", raw_email_id[i]);
+    email_id[16] = '\0';
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&time_type));
+    char query[11000] = {0};
+    if (draft->recipient != nullptr)
+        sprintf(query, "insert into draft (id, sender_id, recipient_id, time, title, body)"
+                       "value ('%s', '%s', '%s', '%s', '%s', '%s');",
+                email_id, sender_id, recipient_id, time_str, draft->title, draft->body);
+    else
+        sprintf(query, "insert into draft (id, sender_id, time, title, body)"
+                       "value ('%s', '%s', '%s', '%s', '%s');",
+                email_id, sender_id, time_str, draft->title, draft->body);
+    delete sender_feedback;
+    delete recipient_feedback;
+    if (mysql_query(connection, query) == 0) {
+        memset(log_str, 0, 200);
+        sprintf(log_str, "Saving draft to account '%s' successfully", draft->sender);
+        StdLog(INFO, log_str);
+        return EXPECTED_SUCCESS;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        return UNEXPECTED_ERROR;
+    }
+}
+
+EmailFeedback *MySQL_DAO::FetchDraft(const char *ip, const char *token, const char *account_name) {
+    // TODO: Validate account authentication status
+    // Log
+    char log_str[200] = {0};
+    sprintf(log_str, "Account '%s' is trying to fetch draft", account_name);
+    StdLog(INFO, log_str);
+    // Get account ID
+    auto *draft_feedback = new EmailFeedback;
+    char *account_id;
+    SQLFeedback *sql_feedback = GetAccountID(account_name);
+    if (sql_feedback->status == EXPECTED_SUCCESS) {
+        account_id = sql_feedback->data;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        draft_feedback->status = UNEXPECTED_ERROR;
+        draft_feedback->email_num = 0;
+        draft_feedback->email = nullptr;
+        return draft_feedback;
+    }
+    char query[200] = {0};
+    sprintf(query, "select sender_id, recipient_id, time, title, body from draft "
+                   "where sender_id = '%s';", account_id);
+    if (mysql_query(connection, query) == 0) {
+        MYSQL_RES *result = mysql_store_result(connection);
+        int draft_num = mysql_num_rows(result);
+        draft_feedback->status = EXPECTED_SUCCESS;
+        draft_feedback->email_num = draft_num;
+        draft_feedback->email = new Email *[draft_num];
+        printf("!%d\n", draft_num);
+        char **sender = new char *[draft_num], **recipient = new char *[draft_num], **time = new char *[draft_num],
+                **title = new char *[draft_num], **body = new char *[draft_num];
+        printf("#1\n");
+        MYSQL_ROW result_row;
+        for (int i = 0; i < draft_num; i++) {
+            result_row = mysql_fetch_row(result);
+            draft_feedback->email[i] = new Email;
+            SQLFeedback *name_sql_feedback = GetAccountName(result_row[0]);
+            sender[i] = new char[strlen(name_sql_feedback->data)];
+            strcpy(sender[i], name_sql_feedback->data);
+            delete name_sql_feedback;
+            draft_feedback->email[i]->sender = sender[i];
+            if (strcmp(result_row[1], "#") == 0) {
+                recipient[i] = new char[1];
+                recipient[i][0] = '\0';
+            } else {
+                name_sql_feedback = GetAccountName(result_row[1]);
+                recipient[i] = new char[strlen(name_sql_feedback->data)];
+                strcpy(recipient[i], name_sql_feedback->data);
+                delete name_sql_feedback;
+            }
+            draft_feedback->email[i]->recipient = recipient[i];
+            time[i] = new char[strlen(result_row[2])];
+            strcpy(time[i], result_row[2]);
+            draft_feedback->email[i]->time = time[i];
+            title[i] = new char[strlen(result_row[3])];
+            strcpy(title[i], result_row[3]);
+            draft_feedback->email[i]->title = title[i];
+            body[i] = new char[strlen(result_row[4])];
+            strcpy(body[i], result_row[4]);
+            draft_feedback->email[i]->body = body[i];
+        }
+        memset(log_str, 0, 200);
+        sprintf(log_str, "Account '%s' fetches draft successfully", account_name);
+        StdLog(INFO, log_str);
+        return draft_feedback;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        draft_feedback->status = UNEXPECTED_ERROR;
+        draft_feedback->email_num = 0;
+        draft_feedback->email = nullptr;
+        return draft_feedback;
     }
 }
 

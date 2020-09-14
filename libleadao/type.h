@@ -47,11 +47,23 @@ struct SQLFeedback {
     char *data;
 };
 
+struct Identity {
+    char *ip;
+    char *token;
+    char *account_name;
+};
+
 struct SignInFeedback {
     SignInStatus status;
     char *token;
     char *nickname;
     char *description;
+};
+
+struct RecoverFeedback {
+    Status status;
+    char *token;
+    char *question;
 };
 
 struct Email {
