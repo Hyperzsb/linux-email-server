@@ -23,9 +23,9 @@ create table email_system.account_info
     # Account password
     password          varchar(30)  not null,
     # Account nickname
-    nickname          varchar(30)           default null,
+    nickname          varchar(30)           default '',
     # Account description
-    description       varchar(100)          default null,
+    description       varchar(100)          default '',
     # Recovery function used to reset account password in case that user forgets his password
     # Recovery question
     recovery_question varchar(100) not null,
@@ -110,11 +110,11 @@ create table email
     # Email title
     title             varchar(100) not null default '默认标题',
     # Email body
-    body              varchar(10000)        default null,
+    body              varchar(10000)        default '',
     # Email accessory number
     accessory_num     int                   default 0,
     # Email accessory ID list
-    accessory_id_list char(160)             default null,
+    accessory_id_list char(160)             default '',
     # Email receiving status, determining whether the email is delivered successfully, include:
     #     0: UNRECEIVED
     #     1: RECEIVED
@@ -132,17 +132,17 @@ create table draft
     # Sender ID
     sender_id         char(16)     not null,
     # Recipient ID
-    recipient_id      char(16)              default null,
+    recipient_id      char(16)              default '#',
     # Draft save time
     time              timestamp    not null,
     # Draft title
     title             varchar(100) not null default '默认标题',
     # Draft body
-    body              varchar(10000)        default null,
+    body              varchar(10000)        default '',
     # Email accessory number
     accessory_num     int                   default 0,
     # Email accessory ID list
-    accessory_id_list char(160)             default null,
+    accessory_id_list char(160)             default '',
     primary key (id),
     foreign key (sender_id) references account_info (id),
     foreign key (recipient_id) references account_info (id)
@@ -153,7 +153,7 @@ create table contact
 (
     owner_id   char(16) not null,
     contact_id char(16) not null,
-    alias      varchar(30) default null,
+    alias      varchar(30) default '',
     primary key (owner_id),
     foreign key (owner_id) references account_info (id),
     foreign key (contact_id) references account_info (id)
