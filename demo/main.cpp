@@ -36,7 +36,6 @@ int main() {
            feedback->status, feedback->token, feedback->nickname, feedback->description);
     delete feedback;
     // Send email function
-    /*
     Email email{};
     email.sender = new char[30];
     email.recipient = new char[30];
@@ -47,9 +46,7 @@ int main() {
     sprintf(email.title, "Test");
     sprintf(email.body, "Just a test email.");
     mysql_dao->SendEmail("127.0.0.1", "null", "aaa@bbb", &email);
-    */
     // Fetch email function
-    /*
     EmailFeedback *email_feedback = mysql_dao->FetchEmail("127.0.0.1", "null",
                                                           "aaa@bbb", EmailType::OUT);
     printf("[console] email_status:%d, email_num:%d\n", email_feedback->status, email_feedback->email_num);
@@ -69,9 +66,8 @@ int main() {
                    email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
                    email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body);
         }
-    */
+    delete email_feedback;
     // Save draft function
-    /*
     Email draft{};
     draft.sender = new char[30];
     draft.recipient = new char[30];
@@ -84,9 +80,7 @@ int main() {
     mysql_dao->SaveDraft("127.0.0.1", "null", "aaa@bbb", &draft);
     strcpy(draft.recipient, "");
     mysql_dao->SaveDraft("127.0.0.1", "null", "aaa@bbb", &draft);
-    */
     // Fetch draft function
-    /*
     EmailFeedback *draft_feedback = mysql_dao->FetchDraft("127.0.0.1", "null", "aaa@bbb");
     printf("[console] email_status:%d, email_num:%d\n", draft_feedback->status, draft_feedback->email_num);
     if (draft_feedback->status == EXPECTED_SUCCESS)
@@ -96,9 +90,7 @@ int main() {
                    draft_feedback->email[i]->time, draft_feedback->email[i]->title, draft_feedback->email[i]->body);
         }
     delete draft_feedback;
-    */
     // Get recovery question
-    /*
     RecoverFeedback *recover_feedback = mysql_dao->GetRecoverQuestion("127.0.0.1", "aaa@bbb");
     if (recover_feedback->status == Status::EXPECTED_SUCCESS) {
         printf("[console] Recovery question: %s\n", recover_feedback->question);
@@ -106,9 +98,7 @@ int main() {
         printf("[console] Get recovery question unsuccessfully\n");
     }
     delete recover_feedback;
-    */
     // Recover
-    /*
     RecoverStatus recover_status = mysql_dao->Recover("127.0.0.1", "null", "aaa@bbb", "ggg", "zzz");
     if (recover_status == RECOVER_SUCCESS) {
         printf("[console] Account 'aaa@bbb' recovers successfully\n");
@@ -117,16 +107,13 @@ int main() {
     } else {
         printf("[console] Account 'aaa@bbb' recovers unsuccessfully\n");
     }
-    */
     // Delete
-    /*
     Status delete_status = mysql_dao->Delete("127.0.0.1", "null", "aaa@bbb");
     if (delete_status == EXPECTED_SUCCESS) {
         printf("[console] Account 'aaa@bbb' deletes itself successfully\n");
     } else {
         printf("[console] Account 'aaa@bbb' deletes itself unsuccessfully\n");
     }
-    */
     // Close MySQL connection
     delete mysql_dao;
 

@@ -39,7 +39,7 @@ EmailFeedback::EmailFeedback() {
 
 EmailFeedback::~EmailFeedback() {
     for (int i = 0; i < this->email_num; i++)
-        delete[]this->email[i];
+        delete this->email[i];
     delete[]this->email;
 }
 
@@ -56,6 +56,6 @@ ContactFeedback::ContactFeedback() {
 
 ContactFeedback::~ContactFeedback() {
     for (int i = 0; i < this->contact_num; i++)
-        delete[]this->contact[i];
+        delete this->contact[i];
     delete[]this->contact;
 }

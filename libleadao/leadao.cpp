@@ -62,6 +62,56 @@ char *MySQL_DAO::GetAccountDomain(const char *account_name) {
     return domain_name;
 }
 
+char *MySQL_DAO::GetStatusName(Status status) {
+    char *name = new char[10];
+    switch (status) {
+        case EXPECTED_SUCCESS: {
+            strcpy(name, "EXPECTED_SUCCESS");
+            break;
+        }
+        case UNEXPECTED_SUCCESS: {
+            strcpy(name, "UNEXPECTED_SUCCESS");
+            break;
+        }
+        case EXPECTED_ERROR: {
+            strcpy(name, "EXPECTED_ERROR");
+            break;
+        }
+        case UNEXPECTED_ERROR: {
+            strcpy(name, "UNEXPECTED_ERROR");
+            break;
+        }
+    }
+    return name;
+}
+
+char *MySQL_DAO::GetActivityName(ActivityType type) {
+    char *name = new char[10];
+    switch (type) {
+        case SIGN_UP: {
+            strcpy(name, "SIGN_UP");
+            break;
+        }
+        case SIGN_IN: {
+            strcpy(name, "SIGN_IN");
+            break;
+        }
+        case SIGN_OUT: {
+            strcpy(name, "SIGN_OUT");
+            break;
+        }
+        case RECOVER: {
+            strcpy(name, "RECOVER");
+            break;
+        }
+        case DELETE: {
+            strcpy(name, "DELETE");
+            break;
+        }
+    }
+    return name;
+}
+
 SQLFeedback *MySQL_DAO::GetAccountID(const char *account_name) {
     char *id, *host_name, *domain_name, query[200] = {0}, log_str[200] = {0};
     auto *feedback = new SQLFeedback;
@@ -151,6 +201,51 @@ SQLFeedback *MySQL_DAO::GetAccountName(const char *account_id) {
     }
 }
 
+Status MySQL_DAO::AccountActivityLog(const char *ip, const char *account_name, ActivityType type, Status status) {
+    char *activity_name = GetActivityName(type);
+    char *status_name = GetStatusName(status);
+    // Log
+    char log_str[200] = {0};
+    sprintf(log_str, "Activity log at ( ip %s | account %s | type %s | status %s )",
+            ip, account_name, activity_name, status_name);
+    StdLog(INFO, log_str);
+    // Generate activity ID
+    SHA256_CTX sha256_ctx;
+    SHA256_Init(&sha256_ctx);
+    SHA256_Update(&sha256_ctx, ip, strlen(ip));
+    SHA256_Update(&sha256_ctx, account_name, strlen(account_name));
+    char time_str[64] = {0};
+    time_t time_type;
+    time(&time_type);
+    sprintf(time_str, "%d", (int) time_type);
+    SHA256_Update(&sha256_ctx, time_str, strlen(time_str));
+    SHA256_Update(&sha256_ctx, activity_name, strlen(activity_name));
+    SHA256_Update(&sha256_ctx, status_name, strlen(status_name));
+    unsigned char raw_hash_id[32] = {0};
+    SHA256_Final(raw_hash_id, &sha256_ctx);
+    char hash_id[16] = {0};
+    for (int i = 0; i < 8; i++)
+        sprintf(hash_id + i * 2, "%02x", raw_hash_id[i]);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&time_type));
+    char query[200] = {0};
+    sprintf(query, "insert into account_activity (id, account_name, ip, action, time, status) "
+                   "value ('%s', '%s', '%s', %d, '%s', %d);", hash_id, account_name, ip, type, time_str, status);
+    if (mysql_query(connection, query) == 0) {
+        memset(log_str, 0, 200);
+        sprintf(log_str, "Activity log at ( ip %s | account %s | type %s | status %s ) successfully",
+                ip, account_name, activity_name, status_name);
+        StdLog(INFO, log_str);
+        delete activity_name;
+        delete status_name;
+        return EXPECTED_SUCCESS;
+    } else {
+        StdLog(ERROR, mysql_error(connection));
+        delete activity_name;
+        delete status_name;
+        return EXPECTED_ERROR;
+    }
+}
+
 MySQL_DAO::MySQL_DAO() {
     this->mysql_host = nullptr;
     this->mysql_port = 0;
@@ -172,12 +267,12 @@ MySQL_DAO::MySQL_DAO(const char *host, short port, const char *user, const char 
     strcpy(this->database, db);
     // Init connection
     this->connection = mysql_init(nullptr);
-    if (connection == nullptr)
-        // Log
-        StdLog(ERROR, "Init connection failed");
-    else
+    if (connection != nullptr)
         // Log
         StdLog(INFO, "Init connection succeeded");
+    else
+        // Log
+        StdLog(ERROR, "Init connection failed");
 }
 
 MySQL_DAO::~MySQL_DAO() {
@@ -258,11 +353,15 @@ SignUpStatus MySQL_DAO::SignUp(const char *ip, const char *host, const char *dom
             memset(log_str, 0, 200);
             sprintf(log_str, "Add account '%s@%s' successfully", host, domain);
             StdLog(INFO, log_str);
+            // Log to MySQL
+            AccountActivityLog(ip, account_name, SIGN_UP, EXPECTED_SUCCESS);
             return SIGN_UP_SUCCESS;
         } else {
             delete sql_feedback;
             // Log
             StdLog(ERROR, mysql_error(connection));
+            // Log to MySQL
+            AccountActivityLog(ip, account_name, SIGN_UP, UNEXPECTED_ERROR);
             return SIGN_UP_ERROR;
         }
     } else if (sql_feedback->status == EXPECTED_SUCCESS) {
@@ -271,11 +370,15 @@ SignUpStatus MySQL_DAO::SignUp(const char *ip, const char *host, const char *dom
         sprintf(log_str, "Account '%s@%s' already exists", host, domain);
         // Log
         StdLog(WARNING, log_str);
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, SIGN_UP, EXPECTED_ERROR);
         return SIGN_UP_ACCOUNT_CONFLICT;
     } else {
         delete sql_feedback;
         // Log
         StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, SIGN_UP, UNEXPECTED_ERROR);
         return SIGN_UP_ERROR;
     }
 }
@@ -303,6 +406,8 @@ SignInFeedback *MySQL_DAO::SignIn(const char *ip, const char *account_name, cons
                 StdLog(WARNING, log_str);
                 auto *feedback = new SignInFeedback;
                 feedback->status = SIGN_IN_INVALID_ACCOUNT;
+                // Log to MySQL
+                AccountActivityLog(ip, account_name, SIGN_IN, EXPECTED_ERROR);
                 return feedback;
             }
             MYSQL_ROW result_row;
@@ -361,30 +466,38 @@ SignInFeedback *MySQL_DAO::SignIn(const char *ip, const char *account_name, cons
                 memset(log_str, 0, 200);
                 sprintf(log_str, "Account '%s' sign in successfully", account_name);
                 StdLog(INFO, log_str);
+                // Log to MySQL
+                AccountActivityLog(ip, account_name, SIGN_IN, EXPECTED_SUCCESS);
                 return feedback;
             } else {
+                auto *feedback = new SignInFeedback;
+                feedback->status = SIGN_IN_INVALID_PASSWD;
                 // Log
                 memset(log_str, 0, 200);
                 sprintf(log_str, "Account '%s' does not match its password, sign in unsuccessfully",
                         account_name);
                 StdLog(WARNING, log_str);
-                auto *feedback = new SignInFeedback;
-                feedback->status = SIGN_IN_INVALID_PASSWD;
+                // Log to MySQL
+                AccountActivityLog(ip, account_name, SIGN_IN, EXPECTED_ERROR);
                 return feedback;
             }
         } else {
+            auto *feedback = new SignInFeedback;
+            feedback->status = SIGN_IN_ERROR;
             // Log
             StdLog(ERROR, mysql_error(connection));
             mysql_free_result(result);
-            auto *feedback = new SignInFeedback;
-            feedback->status = SIGN_IN_ERROR;
+            // Log to MySQL
+            AccountActivityLog(ip, account_name, SIGN_IN, EXPECTED_ERROR);
             return feedback;
         }
     } else {
-        // Log
-        StdLog(ERROR, mysql_error(connection));
         auto *feedback = new SignInFeedback;
         feedback->status = SIGN_IN_ERROR;
+        // Log
+        StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, SIGN_IN, EXPECTED_ERROR);
         return feedback;
     }
 }
@@ -402,11 +515,13 @@ RecoverFeedback *MySQL_DAO::GetRecoverQuestion(const char *ip, const char *accou
     if (sender_feedback->status == EXPECTED_SUCCESS) {
         account_id = sender_feedback->data;
     } else {
-        // Log
-        StdLog(ERROR, mysql_error(connection));
         recover_feedback->status = UNEXPECTED_ERROR;
         recover_feedback->token = nullptr;
         recover_feedback->question = nullptr;
+        // Log
+        StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, RECOVER, UNEXPECTED_ERROR);
         return recover_feedback;
     }
     char query[200] = {0};
@@ -422,13 +537,17 @@ RecoverFeedback *MySQL_DAO::GetRecoverQuestion(const char *ip, const char *accou
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s' gets recovery question successfully", account_name);
         StdLog(INFO, log_str);
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, RECOVER, EXPECTED_SUCCESS);
         return recover_feedback;
     } else {
-        // Log
-        StdLog(ERROR, mysql_error(connection));
         recover_feedback->status = UNEXPECTED_ERROR;
         recover_feedback->token = nullptr;
         recover_feedback->question = nullptr;
+        // Log
+        StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, RECOVER, UNEXPECTED_ERROR);
         return recover_feedback;
     }
 }
@@ -448,6 +567,8 @@ RecoverStatus MySQL_DAO::Recover(const char *ip, const char *token, const char *
     } else {
         // Log
         StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, RECOVER, UNEXPECTED_ERROR);
         return RECOVER_ERROR;
     }
     char query[200] = {0};
@@ -463,22 +584,30 @@ RecoverStatus MySQL_DAO::Recover(const char *ip, const char *token, const char *
                 memset(log_str, 0, 200);
                 sprintf(log_str, "Account '%s' recovers successfully", account_name);
                 StdLog(INFO, log_str);
+                // Log to MySQL
+                AccountActivityLog(ip, account_name, RECOVER, EXPECTED_SUCCESS);
                 return RECOVER_SUCCESS;
             } else {
                 // Log
                 StdLog(ERROR, mysql_error(connection));
+                // Log to MySQL
+                AccountActivityLog(ip, account_name, RECOVER, UNEXPECTED_ERROR);
                 return RECOVER_ERROR;
             }
         } else {
             // Log
             memset(log_str, 0, 200);
             sprintf(log_str, "Account '%s' recovery failed: invalid answer", account_name);
-            StdLog(INFO, log_str);
+            StdLog(WARNING, log_str);
+            // Log to MySQL
+            AccountActivityLog(ip, account_name, RECOVER, EXPECTED_ERROR);
             return RECOVER_INVALID_ANSWER;
         }
     } else {
         // Log
         StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, RECOVER, UNEXPECTED_ERROR);
         return RECOVER_ERROR;
     }
 }
@@ -496,6 +625,8 @@ Status MySQL_DAO::Delete(const char *ip, const char *token, const char *account_
     } else {
         // Log
         StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, DELETE, UNEXPECTED_ERROR);
         return UNEXPECTED_ERROR;
     }
     char query[200] = {0};
@@ -504,10 +635,14 @@ Status MySQL_DAO::Delete(const char *ip, const char *token, const char *account_
         // Log
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s' deletes its account successfully", account_name);
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, DELETE, EXPECTED_SUCCESS);
         return EXPECTED_SUCCESS;
     } else {
         // Log
         StdLog(ERROR, mysql_error(connection));
+        // Log to MySQL
+        AccountActivityLog(ip, account_name, DELETE, UNEXPECTED_ERROR);
         return UNEXPECTED_ERROR;
     }
 }
@@ -608,31 +743,24 @@ EmailFeedback *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
         email_feedback->status = EXPECTED_SUCCESS;
         email_feedback->email_num = email_num;
         email_feedback->email = new Email *[email_num];
-        char **sender = new char *[email_num], **recipient = new char *[email_num], **time = new char *[email_num],
-                **title = new char *[email_num], **body = new char *[email_num];
         MYSQL_ROW result_row;
         for (int i = 0; i < email_num; i++) {
             result_row = mysql_fetch_row(result);
             email_feedback->email[i] = new Email;
             SQLFeedback *name_sql_feedback = GetAccountName(result_row[0]);
-            sender[i] = new char[strlen(name_sql_feedback->data)];
-            strcpy(sender[i], name_sql_feedback->data);
+            email_feedback->email[i]->sender = new char[strlen(name_sql_feedback->data)];
+            strcpy(email_feedback->email[i]->sender, name_sql_feedback->data);
             delete name_sql_feedback;
-            email_feedback->email[i]->sender = sender[i];
             name_sql_feedback = GetAccountName(result_row[1]);
-            recipient[i] = new char[strlen(name_sql_feedback->data)];
-            strcpy(recipient[i], name_sql_feedback->data);
+            email_feedback->email[i]->recipient = new char[strlen(name_sql_feedback->data)];
+            strcpy(email_feedback->email[i]->recipient, name_sql_feedback->data);
             delete name_sql_feedback;
-            email_feedback->email[i]->recipient = recipient[i];
-            time[i] = new char[strlen(result_row[2])];
-            strcpy(time[i], result_row[2]);
-            email_feedback->email[i]->time = time[i];
-            title[i] = new char[strlen(result_row[3])];
-            strcpy(title[i], result_row[3]);
-            email_feedback->email[i]->title = title[i];
-            body[i] = new char[strlen(result_row[4])];
-            strcpy(body[i], result_row[4]);
-            email_feedback->email[i]->body = body[i];
+            email_feedback->email[i]->time = new char[strlen(result_row[2])];
+            strcpy(email_feedback->email[i]->time, result_row[2]);
+            email_feedback->email[i]->title = new char[strlen(result_row[3])];
+            strcpy(email_feedback->email[i]->title, result_row[3]);
+            email_feedback->email[i]->body = new char[strlen(result_row[4])];
+            strcpy(email_feedback->email[i]->body, result_row[4]);
         }
         // Log
         memset(log_str, 0, 200);
@@ -729,29 +857,22 @@ EmailFeedback *MySQL_DAO::FetchDraft(const char *ip, const char *token, const ch
         draft_feedback->status = EXPECTED_SUCCESS;
         draft_feedback->email_num = draft_num;
         draft_feedback->email = new Email *[draft_num];
-        char **sender = new char *[draft_num], **recipient = new char *[draft_num], **time = new char *[draft_num],
-                **title = new char *[draft_num], **body = new char *[draft_num];
         MYSQL_ROW result_row;
         for (int i = 0; i < draft_num; i++) {
             result_row = mysql_fetch_row(result);
             draft_feedback->email[i] = new Email;
             SQLFeedback *name_sql_feedback = GetAccountName(result_row[0]);
-            sender[i] = new char[strlen(name_sql_feedback->data)];
-            strcpy(sender[i], name_sql_feedback->data);
+            draft_feedback->email[i]->sender = new char[strlen(name_sql_feedback->data)];
+            strcpy(draft_feedback->email[i]->sender, name_sql_feedback->data);
             delete name_sql_feedback;
-            draft_feedback->email[i]->sender = sender[i];
-            recipient[i] = new char[strlen(result_row[1])];
-            strcpy(recipient[i], result_row[1]);
-            draft_feedback->email[i]->recipient = recipient[i];
-            time[i] = new char[strlen(result_row[2])];
-            strcpy(time[i], result_row[2]);
-            draft_feedback->email[i]->time = time[i];
-            title[i] = new char[strlen(result_row[3])];
-            strcpy(title[i], result_row[3]);
-            draft_feedback->email[i]->title = title[i];
-            body[i] = new char[strlen(result_row[4])];
-            strcpy(body[i], result_row[4]);
-            draft_feedback->email[i]->body = body[i];
+            draft_feedback->email[i]->recipient = new char[strlen(result_row[1])];
+            strcpy(draft_feedback->email[i]->recipient, result_row[1]);
+            draft_feedback->email[i]->time = new char[strlen(result_row[2])];
+            strcpy(draft_feedback->email[i]->time, result_row[2]);
+            draft_feedback->email[i]->title = new char[strlen(result_row[3])];
+            strcpy(draft_feedback->email[i]->title, result_row[3]);
+            draft_feedback->email[i]->body = new char[strlen(result_row[4])];
+            strcpy(draft_feedback->email[i]->body, result_row[4]);
         }
         // Log
         memset(log_str, 0, 200);
