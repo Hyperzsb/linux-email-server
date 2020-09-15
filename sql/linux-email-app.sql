@@ -11,7 +11,7 @@ grant all on email_system.* to 'email_admin'@'%';
 # Create tables
 # Create account info table, which contains basic info of every account
 drop table if exists email_system.account_info;
-create table email_system.account_info
+create table account_info
 (
     # Account Hash ID
     id                char(16)     not null,
@@ -42,27 +42,27 @@ drop table if exists account_activity;
 create table account_activity
 (
     # Activity Hash ID
-    id         char(16)    not null,
-    # Activity creator's account ID
-    account_id varchar(16) not null,
+    id           char(16)    not null,
+    # Activity creator's account name
+    account_name varchar(70) not null,
     # Client IP
-    ip         varchar(15) not null,
+    ip           varchar(15) not null,
     # Activity type, currently include:
-    #     0: Sign in
-    #     1: Sign out
-    #     2: Sing up
+    #     0: Sign up
+    #     1: Sign in
+    #     2: Sing out
     #     3: Recover account
-    #     4：Close account
-    action     int         not null default 0,
+    #     4：Delete account
+    action       int         not null default -1,
     # Activity occurring time
-    time       timestamp   not null,
+    time         timestamp   not null,
     # Activity status code, currently include:
-    #     0: SUCCESS
-    #    -1: ERROR
-    #     1: UNRELIABLE_SUCCESS
-    status     int         not null default 0,
-    primary key (id),
-    foreign key (account_id) references account_info (id) on delete cascade on update cascade
+    #     0: EXPECTED_SUCCESS
+    #     1: UNEXPECTED_SUCCESS
+    #     2: EXPECTED_ERROR
+    #     3: UNEXPECTED_ERROR
+    status       int         not null default 0,
+    primary key (id)
 ) charset = UTF8MB4;
 # Create account token table, which contains token of every sign-in action created by every account
 drop table if exists account_token;
