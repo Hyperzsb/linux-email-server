@@ -153,7 +153,6 @@ create table contact
     owner_id   char(16) not null,
     contact_id char(16) not null,
     alias      varchar(30) default '',
-    primary key (owner_id),
     foreign key (owner_id) references account_info (id) on delete cascade on update cascade,
     foreign key (contact_id) references account_info (id) on delete cascade on update cascade
 ) charset = UTF8MB4;
