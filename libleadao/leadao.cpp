@@ -923,7 +923,7 @@ Status MySQL_DAO::SetContact(const char *ip, const char *token, const char *acco
     if (mysql_query(connection, query) == 0) {
         // Log
         memset(log_str, 0, 200);
-        sprintf(log_str, "Add contact '%s' to '%s' successfully", account_name, contact->contact_name);
+        sprintf(log_str, "Add contact '%s' to '%s' successfully", contact->contact_name, account_name);
         StdLog(INFO, log_str);
         return EXPECTED_SUCCESS;
     } else {
@@ -954,7 +954,7 @@ ContactFeedback *MySQL_DAO::GetContact(const char *ip, const char *token, const 
         return contact_feedback;
     }
     char query[200] = {0};
-    sprintf(query, "select contact_id, alias from email where owner_id = '%s';", account_id);
+    sprintf(query, "select contact_id, alias from contact where owner_id = '%s';", account_id);
     if (mysql_query(connection, query) == 0) {
         MYSQL_RES *result = mysql_store_result(connection);
         int contact_num = mysql_num_rows(result);
