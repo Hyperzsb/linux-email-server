@@ -10,7 +10,7 @@ grant all on email_system.* to 'email_admin'@'%';
 
 # Create tables
 # Create account info table, which contains basic info of every account
-drop table if exists email_system.account_info;
+drop table if exists account_info;
 create table account_info
 (
     # Account Hash ID
@@ -90,9 +90,9 @@ drop table if exists accessory;
 create table accessory
 (
     # Accessory Hash ID
-    id char(16) not null,
-    # TODO: add accessory column
-    # some accessory columns...
+    id    char(16)     not null,
+    # Accessory route
+    route varchar(500) not null,
     primary key (id)
 ) charset = UTF8MB4;
 # Create email details table
@@ -100,25 +100,23 @@ drop table if exists email;
 create table email
 (
     # Email Hash ID
-    id                char(16)     not null,
+    id           char(16)     not null,
     # Sender ID
-    sender_id         char(16)     not null,
+    sender_id    char(16)     not null,
     # Recipient ID
-    recipient_id      char(16)     not null,
+    recipient_id char(16)     not null,
     # Email send time
-    time              timestamp    not null,
+    time         timestamp    not null,
     # Email title
-    title             varchar(100) not null default '默认标题',
+    title        varchar(100) not null default '默认标题',
     # Email body
-    body              varchar(10000)        default '',
-    # Email accessory number
-    accessory_num     int                   default 0,
-    # Email accessory ID list
-    accessory_id_list char(160)             default '',
+    body         varchar(10000)        default '',
+    # Email accessory ID
+    accessory_id char(16)              default '',
     # Email receiving status, determining whether the email is delivered successfully, include:
     #     0: UNRECEIVED
     #     1: RECEIVED
-    status            int          not null,
+    status       int          not null,
     primary key (id),
     foreign key (sender_id) references account_info (id) on delete cascade on update cascade,
     foreign key (recipient_id) references account_info (id) on delete cascade on update cascade
