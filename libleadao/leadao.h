@@ -3,6 +3,7 @@
 
 #include <mysql/mysql.h>
 #include <openssl/sha.h>
+#include <random>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -20,6 +21,7 @@ private:
     char *password;
     char *database;
     MYSQL *connection;
+    unsigned int seed;
 
     static void StdLog(LogLevel level, const char *msg);
 
@@ -36,6 +38,8 @@ private:
     SQLFeedback *GetAccountName(const char *account_id);
 
     Status AccountActivityLog(const char *ip, const char *account_name, ActivityType type, Status status);
+
+    SQLFeedback *GetAccessoryRoute(const char *accessory_id);
 
 public:
     MySQL_DAO();

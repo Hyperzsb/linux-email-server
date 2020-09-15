@@ -88,6 +88,7 @@ struct Email {
     char *time;
     char *title;
     char *body;
+    char *accessory_route;
 
     ~Email();
 };

@@ -221,6 +221,10 @@ Status MySQL_DAO::AccountActivityLog(const char *ip, const char *account_name, A
     SHA256_Update(&sha256_ctx, time_str, strlen(time_str));
     SHA256_Update(&sha256_ctx, activity_name, strlen(activity_name));
     SHA256_Update(&sha256_ctx, status_name, strlen(status_name));
+    char rand_num[20] = {0};
+    std::default_random_engine engine(this->seed++);
+    sprintf(rand_num, "%lu%lu", engine(), engine());
+    SHA256_Update(&sha256_ctx, rand_num, strlen(rand_num));
     unsigned char raw_hash_id[32] = {0};
     SHA256_Final(raw_hash_id, &sha256_ctx);
     char hash_id[16] = {0};
@@ -246,6 +250,34 @@ Status MySQL_DAO::AccountActivityLog(const char *ip, const char *account_name, A
     }
 }
 
+SQLFeedback *MySQL_DAO::GetAccessoryRoute(const char *accessory_id) {
+    auto *feedback = new SQLFeedback;
+    char query[200] = {0}, log_str[200] = {0};
+    sprintf(query, "select route from accessory where id = '%s';", accessory_id);
+    if (mysql_query(connection, query) == 0) {
+        MYSQL_RES *result = mysql_store_result(connection);
+        if (result != nullptr) {
+            MYSQL_ROW result_row = mysql_fetch_row(result);
+            feedback->data = new char[strlen(result_row[0])];
+            strcpy(feedback->data, result_row[0]);
+            feedback->status = EXPECTED_SUCCESS;
+            return feedback;
+        } else {
+            // Log
+            StdLog(ERROR, mysql_error(connection));
+            feedback->status = UNEXPECTED_ERROR;
+            feedback->data = nullptr;
+            return feedback;
+        }
+    } else {
+        // Log
+        StdLog(ERROR, mysql_error(connection));
+        feedback->status = UNEXPECTED_ERROR;
+        feedback->data = nullptr;
+        return feedback;
+    }
+}
+
 MySQL_DAO::MySQL_DAO() {
     this->mysql_host = nullptr;
     this->mysql_port = 0;
@@ -253,6 +285,9 @@ MySQL_DAO::MySQL_DAO() {
     this->password = nullptr;
     this->database = nullptr;
     this->connection = nullptr;
+    time_t time_type;
+    time(&time_type);
+    this->seed = (int) time_type;
 }
 
 MySQL_DAO::MySQL_DAO(const char *host, short port, const char *user, const char *passwd, const char *db) {
@@ -273,6 +308,9 @@ MySQL_DAO::MySQL_DAO(const char *host, short port, const char *user, const char 
     else
         // Log
         StdLog(ERROR, "Init connection failed");
+    time_t time_type;
+    time(&time_type);
+    this->seed = (int) time_type;
 }
 
 MySQL_DAO::~MySQL_DAO() {
@@ -665,7 +703,7 @@ Status MySQL_DAO::SendEmail(const char *ip, const char *token, const char *accou
         StdLog(ERROR, mysql_error(connection));
         return UNEXPECTED_ERROR;
     }
-    // Get recipient account sID
+    // Get recipient account ID
     SQLFeedback *recipient_feedback = GetAccountID(email->recipient);
     if (recipient_feedback->status == EXPECTED_SUCCESS) {
         recipient_id = recipient_feedback->data;
@@ -673,6 +711,40 @@ Status MySQL_DAO::SendEmail(const char *ip, const char *token, const char *accou
         // Log
         StdLog(ERROR, mysql_error(connection));
         return UNEXPECTED_ERROR;
+    }
+    // Add accessory info if needed
+    char accessory_id[17] = {0};
+    if (email->accessory_route != nullptr) {
+        // Add email to database
+        SHA256_CTX sha256_ctx;
+        SHA256_Init(&sha256_ctx);
+        SHA256_Update(&sha256_ctx, sender_id, strlen(sender_id));
+        SHA256_Update(&sha256_ctx, recipient_id, strlen(recipient_id));
+        char time_str[20] = {0};
+        time_t time_type;
+        time(&time_type);
+        sprintf(time_str, "%d", (int) time_type);
+        SHA256_Update(&sha256_ctx, time_str, strlen(time_str));
+        SHA256_Update(&sha256_ctx, email->accessory_route, strlen(email->accessory_route));
+        unsigned char raw_accessory_id[32] = {0};
+        SHA256_Final(raw_accessory_id, &sha256_ctx);
+        for (int i = 0; i < 8; i++)
+            sprintf(accessory_id + i * 2, "%02x", raw_accessory_id[i]);
+        accessory_id[16] = '\0';
+        char query[200] = {0};
+        sprintf(query, "insert into accessory (id, route) value ('%s', '%s');",
+                accessory_id, email->accessory_route);
+        if (mysql_query(connection, query) == 0) {
+            // Log
+            memset(log_str, 0, 200);
+            sprintf(log_str, "Email from '%s' to '%s' add accessory '%s' successfully",
+                    email->sender, email->recipient, email->accessory_route);
+            StdLog(INFO, log_str);
+        } else {
+            // Log
+            StdLog(ERROR, mysql_error(connection));
+            return UNEXPECTED_ERROR;
+        }
     }
     // Add email to database
     SHA256_CTX sha256_ctx;
@@ -692,9 +764,14 @@ Status MySQL_DAO::SendEmail(const char *ip, const char *token, const char *accou
     email_id[16] = '\0';
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", localtime(&time_type));
     char query[11000] = {0};
-    sprintf(query, "insert into email (id, sender_id, recipient_id, time, title, body, status)"
-                   "value ('%s', '%s', '%s', '%s', '%s', '%s', %d);",
-            email_id, sender_id, recipient_id, time_str, email->title, email->body, 0);
+    if (email->accessory_route == nullptr)
+        sprintf(query, "insert into email (id, sender_id, recipient_id, time, title, body, status)"
+                       "value ('%s', '%s', '%s', '%s', '%s', '%s', %d);",
+                email_id, sender_id, recipient_id, time_str, email->title, email->body, 0);
+    else
+        sprintf(query, "insert into email (id, sender_id, recipient_id, time, title, body, accessory_id, status)"
+                       "value ('%s', '%s', '%s', '%s', '%s', '%s', '%s', %d);",
+                email_id, sender_id, recipient_id, time_str, email->title, email->body, accessory_id, 0);
     delete sender_feedback;
     delete recipient_feedback;
     if (mysql_query(connection, query) == 0) {
@@ -732,10 +809,10 @@ EmailFeedback *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
     }
     char query[200] = {0};
     if (type == IN)
-        sprintf(query, "select sender_id, recipient_id, time, title, body from email "
+        sprintf(query, "select sender_id, recipient_id, time, title, body, accessory_id from email "
                        "where recipient_id = '%s';", account_id);
     else
-        sprintf(query, "select sender_id, recipient_id, time, title, body from email "
+        sprintf(query, "select sender_id, recipient_id, time, title, body, accessory_id from email "
                        "where sender_id = '%s';", account_id);
     if (mysql_query(connection, query) == 0) {
         MYSQL_RES *result = mysql_store_result(connection);
@@ -761,6 +838,14 @@ EmailFeedback *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
             strcpy(email_feedback->email[i]->title, result_row[3]);
             email_feedback->email[i]->body = new char[strlen(result_row[4])];
             strcpy(email_feedback->email[i]->body, result_row[4]);
+            if (strlen(result_row[5]) != 0) {
+                SQLFeedback *feedback = GetAccessoryRoute(result_row[5]);
+                email_feedback->email[i]->accessory_route = new char[strlen(feedback->data)];
+                strcpy(email_feedback->email[i]->accessory_route, feedback->data);
+                delete feedback;
+            } else {
+                email_feedback->email[i]->accessory_route = nullptr;
+            }
         }
         // Log
         memset(log_str, 0, 200);

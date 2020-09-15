@@ -29,6 +29,7 @@ Email::~Email() {
     delete[]this->time;
     delete[]this->title;
     delete[]this->body;
+    delete[]this->accessory_route;
 }
 
 EmailFeedback::EmailFeedback() {

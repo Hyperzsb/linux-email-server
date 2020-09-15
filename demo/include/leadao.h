@@ -3,6 +3,7 @@
 
 #include <mysql/mysql.h>
 #include <openssl/sha.h>
+#include <random>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -20,6 +21,7 @@ private:
     char *password;
     char *database;
     MYSQL *connection;
+    unsigned int seed;
 
     static void StdLog(LogLevel level, const char *msg);
 
@@ -27,9 +29,17 @@ private:
 
     static char *GetAccountDomain(const char *account_name);
 
+    static char *GetStatusName(Status status);
+
+    static char *GetActivityName(ActivityType type);
+
     SQLFeedback *GetAccountID(const char *account_name);
 
     SQLFeedback *GetAccountName(const char *account_id);
+
+    Status AccountActivityLog(const char *ip, const char *account_name, ActivityType type, Status status);
+
+    SQLFeedback *GetAccessoryRoute(const char *accessory_id);
 
 public:
     MySQL_DAO();
@@ -48,7 +58,8 @@ public:
 
     RecoverFeedback *GetRecoverQuestion(const char *ip, const char *account_name);
 
-    RecoverStatus Recover(const char *ip, const char *token, const char *account_name, const char *answer, const char *passwd);
+    RecoverStatus
+    Recover(const char *ip, const char *token, const char *account_name, const char *answer, const char *passwd);
 
     Status Delete(const char *ip, const char *token, const char *account_name);
 

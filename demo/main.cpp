@@ -8,6 +8,7 @@ int main() {
     // Connect to MySQL server
     mysql_dao->Connect();
     // Sign up function
+    /*
     SignUpStatus signup_status;
     signup_status = mysql_dao->SignUp("127.0.0.1", "aaa", "bbb", "ccc",
                                       "ddd", "eee", "fff", "ggg");
@@ -35,16 +36,19 @@ int main() {
     printf("[console] Sign in successfully: status: %d, token: %s, nickname: %s, description: %s\n",
            feedback->status, feedback->token, feedback->nickname, feedback->description);
     delete feedback;
+    */
     // Send email function
     Email email{};
     email.sender = new char[30];
     email.recipient = new char[30];
     email.title = new char[100];
     email.body = new char[100];
+    email.accessory_route = new char[100];
     sprintf(email.sender, "aaa@bbb");
     sprintf(email.recipient, "111@222");
     sprintf(email.title, "Test");
     sprintf(email.body, "Just a test email.");
+    sprintf(email.accessory_route, "/home/hyperzsb/accessory.txt");
     mysql_dao->SendEmail("127.0.0.1", "null", "aaa@bbb", &email);
     // Fetch email function
     EmailFeedback *email_feedback = mysql_dao->FetchEmail("127.0.0.1", "null",
@@ -52,9 +56,10 @@ int main() {
     printf("[console] email_status:%d, email_num:%d\n", email_feedback->status, email_feedback->email_num);
     if (email_feedback->status == EXPECTED_SUCCESS)
         for (int i = 0; i < email_feedback->email_num; i++) {
-            printf("[console] Email No.%d: sender: %s, recipient: %s, time: %s, title: %s, body: %s\n", i,
-                   email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
-                   email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body);
+            printf("[console] Email No.%d: sender: %s, recipient: %s, time: %s, title: %s, body: %s, accessory_route: %s\n",
+                   i, email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
+                   email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body,
+                   email_feedback->email[i]->accessory_route);
         }
     delete email_feedback;
     email_feedback = mysql_dao->FetchEmail("127.0.0.1", "null",
@@ -62,12 +67,14 @@ int main() {
     printf("[console] email_status:%d, email_num:%d\n", email_feedback->status, email_feedback->email_num);
     if (email_feedback->status == EXPECTED_SUCCESS)
         for (int i = 0; i < email_feedback->email_num; i++) {
-            printf("[console] Email No.%d: sender: %s, recipient: %s, time: %s, title: %s, body: %s\n", i,
-                   email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
-                   email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body);
+            printf("[console] Email No.%d: sender: %s, recipient: %s, time: %s, title: %s, body: %s, accessory_route: %s\n",
+                   i, email_feedback->email[i]->sender, email_feedback->email[i]->recipient,
+                   email_feedback->email[i]->time, email_feedback->email[i]->title, email_feedback->email[i]->body,
+                   email_feedback->email[i]->accessory_route);
         }
     delete email_feedback;
     // Save draft function
+    /*
     Email draft{};
     draft.sender = new char[30];
     draft.recipient = new char[30];
@@ -114,6 +121,7 @@ int main() {
     } else {
         printf("[console] Account 'aaa@bbb' deletes itself unsuccessfully\n");
     }
+    */
     // Close MySQL connection
     delete mysql_dao;
 

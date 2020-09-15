@@ -16,6 +16,14 @@ enum Status {
     UNEXPECTED_ERROR = 3
 };
 
+enum ActivityType {
+    SIGN_UP = 0,
+    SIGN_IN = 1,
+    SIGN_OUT = 2,
+    RECOVER = 3,
+    DELETE = 4
+};
+
 enum SignUpStatus {
     SIGN_UP_SUCCESS = 0,
     SIGN_UP_ERROR = 1,
@@ -57,8 +65,7 @@ struct Identity {
     ~Identity();
 };
 
-class SignInFeedback {
-public:
+struct SignInFeedback {
     SignInStatus status;
     char *token;
     char *nickname;
@@ -81,6 +88,7 @@ struct Email {
     char *time;
     char *title;
     char *body;
+    char *accessory_route;
 
     ~Email();
 };
