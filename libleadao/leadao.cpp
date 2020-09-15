@@ -6,21 +6,21 @@ void MySQL_DAO::StdLog(LogLevel level, const char *msg) {
     char time_str[64] = {0};
     switch (level) {
         case INFO: {
-            strftime(time_str, sizeof(time_str), "[INFO    ~ %Y-%m-%d %H:%M:%S] ", localtime(&time_type));
+            strftime(time_str, sizeof(time_str), "[MySQL ][INFO    ~ %Y-%m-%d %H:%M:%S] ", localtime(&time_type));
             fputs(time_str, stdout);
             fputs(msg, stdout);
             fputs("\n", stdout);
             break;
         }
         case WARNING: {
-            strftime(time_str, sizeof(time_str), "[WARNING ~ %Y-%m-%d %H:%M:%S] ", localtime(&time_type));
+            strftime(time_str, sizeof(time_str), "[MySQL ][WARNING ~ %Y-%m-%d %H:%M:%S] ", localtime(&time_type));
             fputs(time_str, stdout);
             fputs(msg, stdout);
             fputs("\n", stdout);
             break;
         }
         case ERROR: {
-            strftime(time_str, sizeof(time_str), "[ERROR   ~ %Y-%m-%d %H:%M:%S] ", localtime(&time_type));
+            strftime(time_str, sizeof(time_str), "[MySQL ][ERROR   ~ %Y-%m-%d %H:%M:%S] ", localtime(&time_type));
             fputs(time_str, stderr);
             fputs(msg, stderr);
             fputs("\n", stderr);
