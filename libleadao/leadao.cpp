@@ -63,7 +63,7 @@ char *MySQL_DAO::GetAccountDomain(const char *account_name) {
 }
 
 char *MySQL_DAO::GetStatusName(Status status) {
-    char *name = new char[10];
+    char *name = new char[20];
     switch (status) {
         case EXPECTED_SUCCESS: {
             strcpy(name, "EXPECTED_SUCCESS");
