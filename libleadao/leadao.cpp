@@ -1051,8 +1051,10 @@ ContactFeedback *MySQL_DAO::GetContact(const char *ip, const char *token, const 
         for (int i = 0; i < contact_num; i++) {
             result_row = mysql_fetch_row(result);
             contact_feedback->contact[i] = new Contact;
-            contact[i] = new char[strlen(result_row[0])];
-            strcpy(contact[i], result_row[0]);
+            SQLFeedback *feedback = GetAccountName(result_row[0]);
+            contact[i] = new char[strlen(feedback->data)];
+            strcpy(contact[i], feedback->data);
+            delete feedback;
             contact_feedback->contact[i]->contact_name = contact[i];
             alias[i] = new char[strlen(result_row[1])];
             strcpy(alias[i], result_row[1]);

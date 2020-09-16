@@ -162,6 +162,10 @@ TEST_CASE("Contact") {
     ContactFeedback *feedback = mysql_dao->GetContact("127.0.0.1", "null", "owner@catch.org");
     REQUIRE(feedback->status == EXPECTED_SUCCESS);
     REQUIRE(feedback->contact_num > 0);
+    printf("[console] Get contact, total num is: %d\n", feedback->contact_num);
+    for (int i = 0; i < feedback->contact_num; i++)
+        printf("[console] Contact name: %s, alias: %s\n", feedback->contact[i]->contact_name,
+               feedback->contact[i]->alias);
     delete feedback;
     delete mysql_dao;
 }
