@@ -54,6 +54,7 @@ struct SQLFeedback {
     Status status;
     char *data;
 
+    SQLFeedback();
     ~SQLFeedback();
 };
 
@@ -62,6 +63,7 @@ struct Identity {
     char *token;
     char *account_name;
 
+    Identity();
     ~Identity();
 };
 
@@ -71,6 +73,7 @@ struct SignInFeedback {
     char *nickname;
     char *description;
 
+    SignInFeedback();
     ~SignInFeedback();
 };
 
@@ -79,6 +82,7 @@ struct RecoverFeedback {
     char *token;
     char *question;
 
+    RecoverFeedback();
     ~RecoverFeedback();
 };
 
@@ -88,7 +92,9 @@ struct Email {
     char *time;
     char *title;
     char *body;
+    char *accessory_route;
 
+    Email();
     ~Email();
 };
 
@@ -106,6 +112,7 @@ struct Contact {
     char *contact_name;
     char *alias;
 
+    Contact();
     ~Contact();
 };
 

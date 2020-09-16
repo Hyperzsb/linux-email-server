@@ -91,6 +91,7 @@ TEST_CASE("Email") {
     email.recipient = new char[30];
     email.title = new char[100];
     email.body = new char[100];
+    email.accessory_route = nullptr;
     sprintf(email.sender, "sender@catch.org");
     sprintf(email.recipient, "recipient@catch.org");
     sprintf(email.title, "Test");
@@ -125,6 +126,7 @@ TEST_CASE("Draft") {
     draft.recipient = new char[30];
     draft.title = new char[100];
     draft.body = new char[100];
+    draft.accessory_route = nullptr;
     sprintf(draft.sender, "sender@catch.org");
     sprintf(draft.recipient, "recipient@catch.org");
     sprintf(draft.title, "Test");

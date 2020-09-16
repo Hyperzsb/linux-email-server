@@ -8,7 +8,6 @@ int main() {
     // Connect to MySQL server
     mysql_dao->Connect();
     // Sign up function
-    /*
     SignUpStatus signup_status;
     signup_status = mysql_dao->SignUp("127.0.0.1", "aaa", "bbb", "ccc",
                                       "ddd", "eee", "fff", "ggg");
@@ -36,8 +35,6 @@ int main() {
     printf("[console] Sign in successfully: status: %d, token: %s, nickname: %s, description: %s\n",
            feedback->status, feedback->token, feedback->nickname, feedback->description);
     delete feedback;
-    */
-    /*
     // Get recovery question
     RecoverFeedback *recover_feedback = mysql_dao->GetRecoverQuestion("127.0.0.1", "aaa@bbb");
     if (recover_feedback->status == Status::EXPECTED_SUCCESS) {
@@ -55,16 +52,7 @@ int main() {
     } else {
         printf("[console] Account 'aaa@bbb' recovers unsuccessfully\n");
     }
-    // Delete
-    Status delete_status = mysql_dao->Delete("127.0.0.1", "null", "aaa@bbb");
-    if (delete_status == EXPECTED_SUCCESS) {
-        printf("[console] Account 'aaa@bbb' deletes itself successfully\n");
-    } else {
-        printf("[console] Account 'aaa@bbb' deletes itself unsuccessfully\n");
-    }
-    */
     // Send email function
-    /*
     Email email{};
     email.sender = new char[30];
     email.recipient = new char[30];
@@ -100,9 +88,7 @@ int main() {
                    email_feedback->email[i]->accessory_route);
         }
     delete email_feedback;
-    */
     // Save draft function
-    /*
     Email draft{};
     draft.sender = new char[30];
     draft.recipient = new char[30];
@@ -125,7 +111,13 @@ int main() {
                    draft_feedback->email[i]->time, draft_feedback->email[i]->title, draft_feedback->email[i]->body);
         }
     delete draft_feedback;
-    */
+    // Delete
+    Status delete_status = mysql_dao->Delete("127.0.0.1", "null", "aaa@bbb");
+    if (delete_status == EXPECTED_SUCCESS) {
+        printf("[console] Account 'aaa@bbb' deletes itself successfully\n");
+    } else {
+        printf("[console] Account 'aaa@bbb' deletes itself unsuccessfully\n");
+    }
     // Close MySQL connection
     delete mysql_dao;
 

@@ -1,8 +1,17 @@
 #include "type.h"
-#include <cstdio>
+
+SQLFeedback::SQLFeedback() {
+    this->data = nullptr;
+}
 
 SQLFeedback::~SQLFeedback() {
     delete[]this->data;
+}
+
+Identity::Identity() {
+    this->ip = nullptr;
+    this->token = nullptr;
+    this->account_name = nullptr;
 }
 
 Identity::~Identity() {
@@ -11,10 +20,23 @@ Identity::~Identity() {
     delete[]this->account_name;
 }
 
+SignInFeedback::SignInFeedback() {
+    this->status = SIGN_IN_ERROR;
+    this->token = nullptr;
+    this->nickname = nullptr;
+    this->description = nullptr;
+}
+
 SignInFeedback::~SignInFeedback() {
     delete[]this->token;
     delete[]this->nickname;
     delete[]this->description;
+}
+
+RecoverFeedback::RecoverFeedback() {
+    this->status = UNEXPECTED_ERROR;
+    this->token = nullptr;
+    this->question = nullptr;
 }
 
 RecoverFeedback::~RecoverFeedback() {
@@ -22,6 +44,14 @@ RecoverFeedback::~RecoverFeedback() {
     delete[]this->question;
 }
 
+Email::Email() {
+    this->sender = nullptr;
+    this->recipient = nullptr;
+    this->time = nullptr;
+    this->title = nullptr;
+    this->body = nullptr;
+    this->accessory_route = nullptr;
+}
 
 Email::~Email() {
     delete[]this->sender;
@@ -42,6 +72,11 @@ EmailFeedback::~EmailFeedback() {
     for (int i = 0; i < this->email_num; i++)
         delete this->email[i];
     delete[]this->email;
+}
+
+Contact::Contact() {
+    this->contact_name = nullptr;
+    this->alias = nullptr;
 }
 
 Contact::~Contact() {
