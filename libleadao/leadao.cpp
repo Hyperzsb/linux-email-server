@@ -177,8 +177,8 @@ SQLFeedback *MySQL_DAO::GetAccountName(const char *account_id) {
             MYSQL_ROW result_row;
             result_row = mysql_fetch_row(result);
             host_name = new char[30], domain_name = new char[30];
-            sprintf(host_name, "%s", result_row[0]);
-            sprintf(domain_name, "%s", result_row[1]);
+            strcpy(host_name, result_row[0]);
+            strcpy(domain_name, result_row[1]);
             feedback->data = new char[strlen(result_row[0]) + strlen(result_row[1]) + 2];
             sprintf(feedback->data, "%s@%s", host_name, domain_name);
             feedback->status = EXPECTED_SUCCESS;
@@ -261,6 +261,7 @@ SQLFeedback *MySQL_DAO::GetAccessoryRoute(const char *accessory_id) {
             feedback->data = new char[strlen(result_row[0])];
             strcpy(feedback->data, result_row[0]);
             feedback->status = EXPECTED_SUCCESS;
+            mysql_free_result(result);
             return feedback;
         } else {
             // Log
@@ -314,7 +315,7 @@ MySQL_DAO::MySQL_DAO(const char *host, short port, const char *user, const char 
 }
 
 MySQL_DAO::~MySQL_DAO() {
-    if (this->connection != nullptr) {
+    if (this->connection != NULL) {
         mysql_close(connection);
         // Log
         StdLog(INFO, "Closed established connection. Process shutting down");
@@ -322,10 +323,10 @@ MySQL_DAO::~MySQL_DAO() {
         // Log
         StdLog(WARNING, "No connection has been established. Process shutting down");
     }
-    delete this->mysql_host;
-    delete this->username;
-    delete this->password;
-    delete this->database;
+    delete[]this->mysql_host;
+    delete[]this->username;
+    delete[]this->password;
+    delete[]this->database;
 }
 
 bool MySQL_DAO::Connect() {
@@ -438,6 +439,7 @@ SignInFeedback *MySQL_DAO::SignIn(const char *ip, const char *account_name, cons
         MYSQL_RES *result = mysql_store_result(connection);
         if (result != nullptr) {
             if (mysql_num_rows(result) == 0) {
+                mysql_free_result(result);
                 // Log
                 memset(log_str, 0, 200);
                 sprintf(log_str, "No such account '%s'", account_name);
@@ -450,8 +452,10 @@ SignInFeedback *MySQL_DAO::SignIn(const char *ip, const char *account_name, cons
             }
             MYSQL_ROW result_row;
             result_row = mysql_fetch_row(result);
-            char *id = result_row[0];
-            char *valid_passwd = result_row[1];
+            char *id = new char[strlen(result_row[0])];
+            strcpy(id, result_row[0]);
+            char *valid_passwd = new char[strlen(result_row[1])];
+            strcpy(valid_passwd, result_row[1]);
             mysql_free_result(result);
             if (strcmp(account_passwd, valid_passwd) == 0) {
                 // Log
@@ -491,11 +495,11 @@ SignInFeedback *MySQL_DAO::SignIn(const char *ip, const char *account_name, cons
                         char *description = new char[strlen(result_row[1])];
                         strcpy(description, result_row[1]);
                         feedback->description = description;
+                        mysql_free_result(result);
                     } else {
                         // Log
                         StdLog(ERROR, mysql_error(connection));
                     }
-                    mysql_free_result(result);
                 } else {
                     // Log
                     StdLog(ERROR, mysql_error(connection));
@@ -571,6 +575,7 @@ RecoverFeedback *MySQL_DAO::GetRecoverQuestion(const char *ip, const char *accou
         MYSQL_ROW result_row = mysql_fetch_row(result);
         recover_feedback->question = new char[strlen(result_row[0])];
         strcpy(recover_feedback->question, result_row[0]);
+        mysql_free_result(result);
         // Log
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s' gets recovery question successfully", account_name);
@@ -615,6 +620,7 @@ RecoverStatus MySQL_DAO::Recover(const char *ip, const char *token, const char *
         MYSQL_RES *result = mysql_store_result(connection);
         MYSQL_ROW result_row = mysql_fetch_row(result);
         if (strcmp(answer, result_row[0]) == 0) {
+            mysql_free_result(result);
             memset(query, 0, 200);
             sprintf(query, "update account_info set password = '%s' where id = '%s';", passwd, account_id);
             if (mysql_query(connection, query) == 0) {
@@ -633,6 +639,7 @@ RecoverStatus MySQL_DAO::Recover(const char *ip, const char *token, const char *
                 return RECOVER_ERROR;
             }
         } else {
+            mysql_free_result(result);
             // Log
             memset(log_str, 0, 200);
             sprintf(log_str, "Account '%s' recovery failed: invalid answer", account_name);
@@ -847,6 +854,7 @@ EmailFeedback *MySQL_DAO::FetchEmail(const char *ip, const char *token, const ch
                 email_feedback->email[i]->accessory_route = nullptr;
             }
         }
+        mysql_free_result(result);
         // Log
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s' fetches email successfully", account_name);
@@ -959,6 +967,7 @@ EmailFeedback *MySQL_DAO::FetchDraft(const char *ip, const char *token, const ch
             draft_feedback->email[i]->body = new char[strlen(result_row[4])];
             strcpy(draft_feedback->email[i]->body, result_row[4]);
         }
+        mysql_free_result(result);
         // Log
         memset(log_str, 0, 200);
         sprintf(log_str, "Account '%s' fetches draft successfully", account_name);
